@@ -1,3 +1,5 @@
+*.swp
+*.class
 # Object files
 *.o
 *.ko
@@ -24,6 +26,7 @@
 *.pydevproject
 .project
 .metadata
+.recommenders
 bin/
 tmp/
 *.tmp
