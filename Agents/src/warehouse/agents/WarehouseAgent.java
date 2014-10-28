@@ -44,8 +44,7 @@ public class WarehouseAgent extends Agent {
 				JSONArray jsonOrderList = json.getJSONArray("list");
 				for(int i = 0; i < jsonOrderList.length(); i++) {
 					JSONObject pair = jsonOrderList.getJSONObject(i);
-					String[] keys = JSONObject.getNames(pair);
-					ordr.items.add(new Pair<String, Integer>(keys[0], pair.getInt(keys[0])));
+					ordr.items.add(Pair.convert(pair));
 				}
 				// Create Order Agent and hand over data
 				String orderAgentName = "Order" + ordr.id;
