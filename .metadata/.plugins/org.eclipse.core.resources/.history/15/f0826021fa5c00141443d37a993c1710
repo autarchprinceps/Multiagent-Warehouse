@@ -1,0 +1,20 @@
+package warehouse.agents;
+
+import jade.core.Agent;
+import jade.core.behaviours.TickerBehaviour;
+import jade.lang.acl.ACLMessage;
+
+/**
+ * @author Patrick Robinson
+ *
+ */
+public class CustomerAgentStub extends Agent {
+	protected void setup() {
+		this.addBehaviour(new TickerBehaviour(this, 1000) {
+			@Override
+			protected void onTick() {
+				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+			}
+		});
+	}
+}

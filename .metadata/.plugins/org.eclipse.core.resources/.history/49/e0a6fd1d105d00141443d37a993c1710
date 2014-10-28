@@ -1,0 +1,54 @@
+package warehouse.agents;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.function.Consumer;
+
+import org.json.JSONObject;
+
+import jade.core.AID;
+import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
+import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
+
+/**
+ * @author Patrick Robinson
+ *
+ */
+public class WarehouseAgent extends Agent {
+	private class OrderRequestReceiver extends CyclicBehaviour {
+		@Override
+		public void action() {
+			ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
+			if(recMsg != null) {
+				JSONObject json = new JSONObject(recMsg.getContent());
+				Order ordr = new Order();
+				// Confirm Order
+				ACLMessage response = new ACLMessage(ACLMessage.CONFIRM);
+				Iterator<AID> replyTo = recMsg.getAllReplyTo();
+				while(replyTo.hasNext()) {
+					AID tmpAID = replyTo.next();
+					ordr.requestingAgents.add(tmpAID);
+					response.addReceiver(tmpAID);
+				}
+				response.setLanguage("JSON");
+				response.setContent("{id:" + json.getInt("id") + "}");
+				send(response);
+				// Process Order
+			}
+		}
+	}
+	
+	private class Order {
+		public AID handlingAgentAddress;
+		public List<AID> requestingAgents = new ArrayList<>();
+		public int id;
+		public List<Pair<String, Integer>> items = new ArrayList<>();
+	}
+	
+	protected void setup() {
+		this.addBehaviour(new OrderRequestReceiver());
+	}
+}

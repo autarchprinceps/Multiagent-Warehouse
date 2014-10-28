@@ -1,0 +1,20 @@
+INDEX VERSION 1.127+/home/autarch/Dropbox/Hochschule Bonn Rhein Sieg/1/Agent/workspace/.metadata/.plugins/org.eclipse.jdt.core
+3900091803.index
+269208434.index
+1511113971.index
+3092281657.index
+980171567.index
+1149956935.index
+23451500.index
+3280619076.index
+2998184284.index
+3275811252.index
+1909190568.index
+3710643326.index
+1474965974.index
+3059159752.index
+2119057023.index
+29925718.index
+24516761.index
+2271320560.index
+2033963193.index

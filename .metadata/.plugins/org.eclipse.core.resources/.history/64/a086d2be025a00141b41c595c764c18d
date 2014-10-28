@@ -1,0 +1,14 @@
+/**
+ * 
+ */
+package warehouse.agents;
+
+import jade.core.Agent;
+
+/**
+ * @author autarch
+ *
+ */
+public class OrderAgent extends Agent {
+
+}

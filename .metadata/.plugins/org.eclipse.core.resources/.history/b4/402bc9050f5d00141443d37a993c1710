@@ -1,0 +1,8 @@
+package warehouse.agents;
+
+/**
+ * @author Patrick Robinson
+ */
+class Pair {
+
+}

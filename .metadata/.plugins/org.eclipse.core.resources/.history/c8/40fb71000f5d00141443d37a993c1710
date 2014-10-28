@@ -1,0 +1,12 @@
+/**
+ * 
+ */
+package warehouse.agents;
+
+/**
+ * @author autarch
+ *
+ */
+class Pair {
+
+}
