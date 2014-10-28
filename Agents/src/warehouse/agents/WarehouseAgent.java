@@ -74,7 +74,14 @@ public class WarehouseAgent extends Agent {
 					response.addReceiver(rec);
 				}
 				response.setLanguage("JSON");
-				response.setContent("TODO");
+				StringBuilder sb = new StringBuilder("{id:");
+				sb.append(ordr.id).append(",list:[");
+				for(Pair<String, Integer> p : ordr.items) {
+					sb.append(p.getFirst()).append(":").append(p.getSecond()).append(",");
+				}
+				sb.deleteCharAt(sb.length() - 1);
+				sb.append("]}");
+				response.setContent(sb.toString());
 			}
 		}
 	}
