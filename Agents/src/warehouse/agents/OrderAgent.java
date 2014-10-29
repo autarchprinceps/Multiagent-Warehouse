@@ -11,6 +11,9 @@ import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
@@ -101,7 +104,7 @@ public class OrderAgent extends Agent {
 			send(msg);
 			removeBehaviour(finish);
 			finish = null;
-			// TODO destroy this OrderAgent .done implementieren?
+			// TODO destroy this OrderAgent .done implementieren? done für Behaiviors?
 		}
 		
 		@Override
@@ -144,6 +147,14 @@ public class OrderAgent extends Agent {
 	private Behaviour finish;
 	
 	protected void setup() {
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		try {
+			DFService.register(this, dfd);
+		} catch(FIPAException ex) {
+			ex.printStackTrace();
+		}
+		
 		Object[] args = this.getArguments();
 		if(args != null && args.length == 1 && args[0] instanceof List<?>) {
 			for(Pair<String, Integer> p : (List<Pair<String, Integer>>)args[0]) {
@@ -159,6 +170,10 @@ public class OrderAgent extends Agent {
 	}
 	
 	protected void takeDown() {
-		// TODO how to destroy Order onFinished?
+		try {
+			DFService.deregister(this);
+		} catch(FIPAException ex) {
+			ex.printStackTrace();
+		}
 	}
 }

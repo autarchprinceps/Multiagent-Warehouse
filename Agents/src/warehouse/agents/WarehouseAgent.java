@@ -12,6 +12,9 @@ import org.json.JSONObject;
 import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import jade.wrapper.AgentController;
@@ -95,6 +98,23 @@ public class WarehouseAgent extends Agent {
 	private Map<AID, Order> unfinishedOrders = new HashMap<>();
 	
 	protected void setup() {
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		try {
+			DFService.register(this, dfd);
+		} catch(FIPAException ex) {
+			ex.printStackTrace();
+		}
+		
 		this.addBehaviour(new OrderRequestReceiver());
+		this.addBehaviour(new FinishedOrderReceiver());
+	}
+	
+	protected void takeDown() {
+		try {
+			DFService.deregister(this);
+		} catch(FIPAException ex) {
+			ex.printStackTrace();
+		}
 	}
 }
