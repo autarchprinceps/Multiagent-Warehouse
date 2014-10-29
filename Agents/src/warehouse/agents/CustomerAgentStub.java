@@ -19,7 +19,6 @@ import jade.lang.acl.MessageTemplate;
  *
  */
 public class CustomerAgentStub extends Agent {
-	private int id_gen = 0;
 	private Random r = new Random();
 	private String[] components = new String[]{ "Rotor", "Wing", "Body", "Engine" };
 	
@@ -55,9 +54,7 @@ public class CustomerAgentStub extends Agent {
 	}
 	
 	private String generateJSON() {
-		StringBuilder result = new StringBuilder("{id:");
-		result.append(++id_gen);
-		result.append(",list:[");
+		StringBuilder result = new StringBuilder("[");
 		for(String part : components) {
 			result.append('{');
 			result.append(part);
@@ -66,7 +63,7 @@ public class CustomerAgentStub extends Agent {
 			result.append("},");
 		}
 		result.deleteCharAt(result.length() - 1);
-		result.append("]}");
+		result.append("]");
 		return result.toString();
 	}
 	
