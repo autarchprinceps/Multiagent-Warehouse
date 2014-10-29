@@ -44,8 +44,7 @@ public class WarehouseAgent extends Agent {
 				JSONArray jsonOrderList = json.getJSONArray("list");
 				for(int i = 0; i < jsonOrderList.length(); i++) {
 					JSONObject pair = jsonOrderList.getJSONObject(i);
-					String[] keys = JSONObject.getNames(pair);
-					ordr.items.add(new Pair<String, Integer>(keys[0], pair.getInt(keys[0])));
+					ordr.items.add(Pair.convert(pair));
 				}
 				// Create Order Agent and hand over data
 				String orderAgentName = "Order" + ordr.id;
@@ -74,7 +73,14 @@ public class WarehouseAgent extends Agent {
 					response.addReceiver(rec);
 				}
 				response.setLanguage("JSON");
-				response.setContent("TODO");
+				StringBuilder sb = new StringBuilder("{id:");
+				sb.append(ordr.id).append(",list:[");
+				for(Pair<String, Integer> p : ordr.items) {
+					sb.append(p.getFirst()).append(":").append(p.getSecond()).append(",");
+				}
+				sb.deleteCharAt(sb.length() - 1);
+				sb.append("]}");
+				response.setContent(sb.toString());
 			}
 		}
 	}

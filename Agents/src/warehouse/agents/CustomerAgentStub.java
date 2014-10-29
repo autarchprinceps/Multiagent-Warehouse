@@ -2,10 +2,14 @@ package warehouse.agents;
 
 import java.util.Random;
 
+import org.json.JSONObject;
+
 import jade.core.AID;
 import jade.core.Agent;
+import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.lang.acl.ACLMessage;
+import jade.lang.acl.MessageTemplate;
 
 /**
  * @author Patrick Robinson
@@ -26,6 +30,15 @@ public class CustomerAgentStub extends Agent {
 				msg.setContent(generateJSON());
 				msg.addReplyTo(getAID());
 				send(msg);
+			}
+		});
+		this.addBehaviour(new CyclicBehaviour() {
+			@Override
+			public void action() {				
+				ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.INFORM));
+				if(recMsg != null) {
+					System.out.println("Order finished: #" + (new JSONObject(recMsg.getContent()).getInt("id")));
+				}
 			}
 		});
 	}
