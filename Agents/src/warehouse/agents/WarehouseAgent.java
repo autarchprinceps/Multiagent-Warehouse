@@ -24,14 +24,16 @@ import jade.wrapper.AgentController;
  *
  */
 public class WarehouseAgent extends Agent {
+	private int id_gen = 0;
+	
 	private class OrderRequestReceiver extends CyclicBehaviour {
 		@Override
 		public void action() {
 			ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
 			if(recMsg != null) {
-				JSONObject json = new JSONObject(recMsg.getContent());
+				JSONArray json = new JSONArray(recMsg.getContent());
 				Order ordr = new Order();
-				ordr.id = json.getInt("id");
+				ordr.id = id_gen++;
 				// Confirm Order
 				ACLMessage response = new ACLMessage(ACLMessage.AGREE);
 				Iterator<AID> replyTo = recMsg.getAllReplyTo();
@@ -44,9 +46,8 @@ public class WarehouseAgent extends Agent {
 				response.setContent("{id:" + ordr.id + "}");
 				send(response);
 				// Process Order
-				JSONArray jsonOrderList = json.getJSONArray("list");
-				for(int i = 0; i < jsonOrderList.length(); i++) {
-					JSONObject pair = jsonOrderList.getJSONObject(i);
+				for(int i = 0; i < json.length(); i++) {
+					JSONObject pair = json.getJSONObject(i);
 					ordr.items.add(Pair.convert(pair));
 				}
 				// Create Order Agent and hand over data
