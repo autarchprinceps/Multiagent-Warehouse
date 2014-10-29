@@ -14,6 +14,7 @@ import jade.core.behaviours.OneShotBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
@@ -28,7 +29,17 @@ public class OrderAgent extends Agent {
 			ACLMessage msg = new ACLMessage(ACLMessage.QUERY_IF);
 			msg.setLanguage("English");
 			msg.setContent("free");
-			// TODO addReceiver? broadcast? DFService.search
+			DFAgentDescription orderPickerDesc = new DFAgentDescription();
+			ServiceDescription sd = new ServiceDescription();
+			sd.setName("pick");
+			orderPickerDesc.addServices(sd);
+			try {
+				for(DFAgentDescription desc : DFService.search(OrderAgent.this, orderPickerDesc)) {
+					msg.addReceiver(desc.getName());
+				}
+			} catch(FIPAException ex) {
+				ex.printStackTrace();
+			}
 			send(msg);
 			pick = new OrderPickerPicker();
 			addBehaviour(pick);
@@ -104,7 +115,7 @@ public class OrderAgent extends Agent {
 			send(msg);
 			removeBehaviour(finish);
 			finish = null;
-			// TODO destroy this OrderAgent .done implementieren? done für Behaiviors?
+			done = true; // TODO does this work?
 		}
 		
 		@Override
@@ -146,7 +157,10 @@ public class OrderAgent extends Agent {
 	private Behaviour ack;
 	private Behaviour finish;
 	
+	private boolean done;
+	
 	protected void setup() {
+		done = false;
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		try {
@@ -175,5 +189,9 @@ public class OrderAgent extends Agent {
 		} catch(FIPAException ex) {
 			ex.printStackTrace();
 		}
+	}
+	
+	protected boolean done() {
+		return done;
 	}
 }
