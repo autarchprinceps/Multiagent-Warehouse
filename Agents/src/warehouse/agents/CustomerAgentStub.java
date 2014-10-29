@@ -8,6 +8,9 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
+import jade.domain.DFService;
+import jade.domain.FIPAException;
+import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
@@ -21,6 +24,14 @@ public class CustomerAgentStub extends Agent {
 	private String[] components = new String[]{ "Rotor", "Wing", "Body", "Engine" };
 	
 	protected void setup() {
+		DFAgentDescription dfd = new DFAgentDescription();
+		dfd.setName(getAID());
+		try {
+			DFService.register(this, dfd);
+		} catch(FIPAException ex) {
+			ex.printStackTrace();
+		}
+		
 		this.addBehaviour(new TickerBehaviour(this, 1000) {
 			@Override
 			protected void onTick() {
@@ -57,5 +68,13 @@ public class CustomerAgentStub extends Agent {
 		result.deleteCharAt(result.length() - 1);
 		result.append("]}");
 		return result.toString();
+	}
+	
+	protected void takeDown() {
+		try {
+			DFService.deregister(this);
+		} catch(FIPAException ex) {
+			ex.printStackTrace();
+		}
 	}
 }
