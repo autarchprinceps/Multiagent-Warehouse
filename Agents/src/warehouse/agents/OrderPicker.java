@@ -40,7 +40,6 @@ public class OrderPicker extends Agent
 	protected void setup()
 	{
 		DFAgentDescription agentDescription = new DFAgentDescription();
-		agentDescription.setName(getAID());
 		ServiceDescription serviceDescription = new ServiceDescription();
 		// TODO setType oder setName?
 		serviceDescription.setType(SERVICE_NAME);
@@ -94,10 +93,6 @@ public class OrderPicker extends Agent
 				response.setContent(new JSONObject().put(getAID().getName(), true).toString());
 				send(response);
 			}
-			else
-			{
-				// isIdle == false, do nothing
-			}
 		}
 
 	}
@@ -127,11 +122,6 @@ public class OrderPicker extends Agent
 
 				}
 			}
-			else
-			{
-				// isIdle == false, do nothing
-			}
-
 		}
 
 	}
