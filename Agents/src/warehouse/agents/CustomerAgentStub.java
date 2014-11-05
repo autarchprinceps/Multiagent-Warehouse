@@ -11,6 +11,7 @@ import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
+import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
@@ -38,7 +39,24 @@ public class CustomerAgentStub extends Agent {
 			@Override
 			protected void onTick() {
 				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
-				msg.addReceiver(new AID("WarehouseAgent", AID.ISLOCALNAME));
+				DFAgentDescription whDesc = new DFAgentDescription();
+				ServiceDescription sd = new ServiceDescription();
+				sd.setName("WarehouseAgent");
+				whDesc.addServices(sd);
+				try {
+					DFAgentDescription[] desc = DFService.search(CustomerAgentStub.this, whDesc);
+					if(desc.length == 1) {
+						msg.addReceiver(desc[0].getName());
+					} else {
+						if(desc.length > 1) {
+							System.err.println("Multiple WarehouseAgents found");
+						} else {
+							System.err.println("No WarehouseAgent found");
+						}
+					}
+				} catch(FIPAException ex) {
+					ex.printStackTrace();
+				}
 				msg.setLanguage("JSON");
 				msg.setContent(generateJSON());
 				msg.addReplyTo(getAID());

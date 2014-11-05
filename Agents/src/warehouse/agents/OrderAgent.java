@@ -120,7 +120,24 @@ public class OrderAgent extends Agent {
 			ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 			msg.setLanguage("English");
 			msg.setContent("checked");
-			msg.addReceiver(new AID("WarehouseAgent", AID.ISLOCALNAME)); // TODO how can I set AID to this
+			DFAgentDescription whDesc = new DFAgentDescription();
+			ServiceDescription sd = new ServiceDescription();
+			sd.setName("WarehouseAgent");
+			whDesc.addServices(sd);
+			try {
+				DFAgentDescription[] desc = DFService.search(OrderAgent.this, whDesc);
+				if(desc.length == 1) {
+					msg.addReceiver(desc[0].getName());
+				} else {
+					if(desc.length > 1) {
+						System.err.println("Multiple WarehouseAgents found");
+					} else {
+						System.err.println("No WarehouseAgent found");
+					}
+				}
+			} catch(FIPAException ex) {
+				ex.printStackTrace();
+			}
 			send(msg);
 			removeBehaviour(finish);
 			finish = null;
