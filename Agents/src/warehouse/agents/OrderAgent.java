@@ -23,7 +23,11 @@ import jade.lang.acl.MessageTemplate;
  *
  */
 public class OrderAgent extends Agent {
+	private static final long serialVersionUID = -2339964650250401939L;
+
 	private class OrderPickerQuerier extends OneShotBehaviour {
+		private static final long serialVersionUID = -4536389382809513479L;
+
 		@Override
 		public void action() {
 			ACLMessage msg = new ACLMessage(ACLMessage.QUERY_IF);
@@ -49,8 +53,11 @@ public class OrderAgent extends Agent {
 	}
 	
 	private class OrderPickerPicker extends CyclicBehaviour {
+		private static final long serialVersionUID = 1757684378347650720L;
+
 		@Override
 		public void action() {
+			// TODO what if no confirm is received, because no OrderPicker is free?
 			ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.CONFIRM));
 			if(recMsg != null) {
 				ACLMessage response = new ACLMessage(ACLMessage.REQUEST);
@@ -96,6 +103,8 @@ public class OrderAgent extends Agent {
 	}
 	
 	private class FinishChecker extends CyclicBehaviour {
+		private static final long serialVersionUID = -7280941638703277585L;
+
 		private void failure() {
 			removeBehaviour(finish);
 			finish = null;

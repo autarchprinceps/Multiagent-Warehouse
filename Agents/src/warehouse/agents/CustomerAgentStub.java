@@ -19,6 +19,7 @@ import jade.lang.acl.MessageTemplate;
  *
  */
 public class CustomerAgentStub extends Agent {
+	private static final long serialVersionUID = 1018982190165117345L;
 	private Random r = new Random();
 	private String[] components = new String[]{ "Rotor", "Wing", "Body", "Engine" };
 	
@@ -32,6 +33,8 @@ public class CustomerAgentStub extends Agent {
 		}
 		
 		this.addBehaviour(new TickerBehaviour(this, 1000) {
+			private static final long serialVersionUID = -5570642512218060415L;
+
 			@Override
 			protected void onTick() {
 				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
@@ -43,6 +46,8 @@ public class CustomerAgentStub extends Agent {
 			}
 		});
 		this.addBehaviour(new CyclicBehaviour() {
+			private static final long serialVersionUID = -1738591542396043852L;
+
 			@Override
 			public void action() {				
 				ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.INFORM));

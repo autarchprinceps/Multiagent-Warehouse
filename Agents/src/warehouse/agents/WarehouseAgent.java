@@ -24,9 +24,12 @@ import jade.wrapper.AgentController;
  *
  */
 public class WarehouseAgent extends Agent {
+	private static final long serialVersionUID = 3332937851709218564L;
 	private int id_gen = 0;
 	
 	private class OrderRequestReceiver extends CyclicBehaviour {
+		private static final long serialVersionUID = -2677509192227299216L;
+
 		@Override
 		public void action() {
 			ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
@@ -67,6 +70,8 @@ public class WarehouseAgent extends Agent {
 	}
 	
 	private class FinishedOrderReceiver extends CyclicBehaviour {
+		private static final long serialVersionUID = -8359424326846087735L;
+
 		@Override
 		public void action() {
 			ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.INFORM));
