@@ -1,5 +1,6 @@
 package warehouse.agents;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -194,6 +195,7 @@ public class OrderAgent extends Agent {
 	
 	protected void setup() {
 		done = false;
+		items = new HashMap<>();
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		try {
