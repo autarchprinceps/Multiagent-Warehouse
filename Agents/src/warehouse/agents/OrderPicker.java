@@ -32,7 +32,7 @@ public class OrderPicker extends Agent
 	private Behaviour idle;
 	private Behaviour orderReceiver;
 	private Behaviour itemBroadcaster;
-	private Behaviour itemConfirm;
+	private Behaviour selectShelf;
 	private Behaviour itemPick;
 	private Behaviour orderSender;
 
@@ -105,21 +105,36 @@ public class OrderPicker extends Agent
 		public void action()
 		{
 			ACLMessage request = receive(MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
-			if (request != null && OrderPicker.this.isIdle)
+			if (request != null)
 			{
-				if (request.getLanguage().equals("JSON"))
+				if (OrderPicker.this.isIdle)
 				{
-					OrderPicker.this.orderList = new JSONObject(request.getContent());
-					OrderPicker.this.isIdle = false;
+					if (request.getLanguage().equals("JSON"))
+					{
+						OrderPicker.this.orderList = new JSONObject(request.getContent());
+						OrderPicker.this.isIdle = false;
 
-					OrderPicker.this.itemBroadcaster = new ItemBroadcaster();
-					addBehaviour(OrderPicker.this.itemBroadcaster);
-					// TODO unclear
-					// OrderPicker.this.itemConfirm = new ItemConfirm();
-					// addBehaviour(OrderPicker.this.itemConfirm);
-					// OrderPicker.this.itemPick = new ItemPick();
-					// addBehaviour(OrderPicker.this.itemPick);
+						ACLMessage confirmMsg = new ACLMessage(ACLMessage.AGREE);
+						confirmMsg.addReceiver(request.getSender());
+						confirmMsg.setLanguage("JSON");
+						confirmMsg.setContent(new JSONObject().put(getAID().getName(), true).toString());
+						send(confirmMsg);
 
+						// OrderPicker.this.selectShelf = new SelectShelf();
+						// addBehaviour(OrderPicker.this.selectShelf);
+
+						OrderPicker.this.itemBroadcaster = new ItemBroadcaster();
+						addBehaviour(OrderPicker.this.itemBroadcaster);
+						// TODO
+					}
+				}
+				else
+				{ // isIdle == false
+					ACLMessage cancelMsg = new ACLMessage(ACLMessage.CANCEL);
+					cancelMsg.addReceiver(request.getSender());
+					cancelMsg.setLanguage("JSON");
+					cancelMsg.setContent(new JSONObject().put(getAID().getName(), false).toString());
+					send(cancelMsg);
 				}
 			}
 		}
@@ -160,18 +175,24 @@ public class OrderPicker extends Agent
 
 				itemBroadcast.setContent(selectedItem.toString());
 				send(itemBroadcast);
+
 			}
 		}
 
 	}
 
-	private class ItemConfirm extends CyclicBehaviour
+	private class SelectShelf extends CyclicBehaviour
 	{
 
 		@Override
 		public void action()
 		{
-			// TODO Auto-generated method stub
+			ACLMessage confirm = receive(MessageTemplate.MatchPerformative(ACLMessage.CONFIRM));
+			if (confirm.getProtocol().equals("request-item"))
+			{
+				new JSONObject(confirm.getContent());
+
+			}
 
 		}
 
