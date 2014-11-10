@@ -66,6 +66,8 @@ public class WarehouseAgent extends Agent {
 				}
 				ordr.handlingAgentAddress = new AID(orderAgentName, AID.ISLOCALNAME);
 				unfinishedOrders.put(ordr.handlingAgentAddress, ordr);
+			} else {
+				block();
 			}
 		}
 	}
@@ -91,6 +93,8 @@ public class WarehouseAgent extends Agent {
 				sb.deleteCharAt(sb.length() - 1);
 				sb.append("]}");
 				response.setContent(sb.toString());
+			} else {
+				block();
 			}
 		}
 	}

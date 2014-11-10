@@ -76,6 +76,8 @@ public class OrderAgent extends Agent {
 				addBehaviour(ack);
 				removeBehaviour(pick);
 				pick = null;
+			} else {
+				block();
 			}
 		}
 		
@@ -91,12 +93,15 @@ public class OrderAgent extends Agent {
 				addBehaviour(finish);
 				removeBehaviour(ack);
 				ack = null;
-			}
-			if(cancel != null) {
-				query = new OrderPickerQuerier();
-				addBehaviour(query);
-				removeBehaviour(ack);
-				ack = null;
+			} else {
+				if(cancel != null) {
+					query = new OrderPickerQuerier();
+					addBehaviour(query);
+					removeBehaviour(ack);
+					ack = null;
+				} else {
+					block();
+				}
 			}
 		}
 		
@@ -171,6 +176,8 @@ public class OrderAgent extends Agent {
 					}
 				});
 				success();
+			} else {
+				block();
 			}
 		}
 		
