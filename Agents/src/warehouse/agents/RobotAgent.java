@@ -1,7 +1,6 @@
 package warehouse.agents;
 
-import org.json.JSONObject;
-
+import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
@@ -12,23 +11,21 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
+import java.util.Random;
+
 /**
  * @author Bastian Mager <bastian.mager.2010w@informatik.h-brs.de>
  */
-public class ShelfAgent extends Agent {
+public class RobotAgent extends Agent {
 
+	public static final String SERVICE_NAME = "shelf-robot";
 	private static final long serialVersionUID = 1L;
-	public static final String SERVICE_NAME = "shelf";
-
+	private static Random rand = new Random();
 	private boolean isBusy;
-	private String item;
-	private int quanity;
 
-	public ShelfAgent(String item, int count) {
-		this.item = item;
-		this.quanity = count;
+	public RobotAgent() {
 		this.isBusy = false;
-		this.addBehaviour(new WaitForItemRequests());
+		this.addBehaviour(new WaitForShelfRequests());
 	}
 
 	@Override
@@ -47,38 +44,43 @@ public class ShelfAgent extends Agent {
 
 	}
 
-	@Override
-	protected void takeDown() {
-		try {
-			DFService.deregister(this);
-		} catch (FIPAException e) {
-			e.printStackTrace();
-		}
-	}
-
-	protected boolean has(String jsonRequest) {
-		/*
-		 * EXAMPLE { Rotor : 1 }
-		 */
-		Pair<String, Integer> requestedObject = Pair.convert(new JSONObject(
-				jsonRequest));
-		String requestedItem = requestedObject.getFirst();
-		int requestedCount = requestedObject.getSecond();
-		return item.equals(requestedItem) && requestedCount <= quanity;
-	}
-
-	private class CryForRobot extends OneShotBehaviour {
+	private class TransportShelf extends OneShotBehaviour {
 
 		private static final long serialVersionUID = 1L;
+
+		private AID shelfID;
+
+		protected TransportShelf(AID shelfID) {
+			this.shelfID = shelfID;
+		}
 
 		@Override
 		public void action() {
 
+			isBusy = true;
+
+			int delay = rand.nextInt(3);
+			block(delay * 1000);
+
+			ACLMessage message = new ACLMessage(ACLMessage.INFORM);
+			message.setSender(shelfID);
+			message.setProtocol("request-robot");
+			myAgent.send(message);
+
+			delay = rand.nextInt(3);
+			block(delay * 1000);
+
+			message = new ACLMessage(ACLMessage.INFORM);
+			message.setSender(shelfID);
+			message.setProtocol("request-robot");
+			myAgent.send(message);
+
+			isBusy = false;
 		}
 
 	}
 
-	private class WaitForItemRequests extends CyclicBehaviour {
+	private class WaitForShelfRequests extends CyclicBehaviour {
 
 		private static final long serialVersionUID = 1L;
 
@@ -86,7 +88,7 @@ public class ShelfAgent extends Agent {
 		public void action() {
 
 			ACLMessage message = myAgent.receive(MessageTemplate
-					.MatchProtocol("request-item"));
+					.MatchProtocol("request-robot"));
 
 			if (message != null) {
 
@@ -95,10 +97,10 @@ public class ShelfAgent extends Agent {
 				switch (message.getPerformative()) {
 				case ACLMessage.QUERY_IF:
 
-					if (ShelfAgent.this.has(message.getContent())) {
-						response.setPerformative(ACLMessage.CONFIRM);
-					} else {
+					if (isBusy) {
 						response.setPerformative(ACLMessage.DISCONFIRM);
+					} else {
+						response.setPerformative(ACLMessage.CONFIRM);
 					}
 
 				case ACLMessage.PROPOSE:
@@ -109,7 +111,7 @@ public class ShelfAgent extends Agent {
 						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
 					}
 
-					// TODO robots...
+					myAgent.addBehaviour(new TransportShelf(message.getSender()));
 
 				default:
 					response.setPerformative(ACLMessage.NOT_UNDERSTOOD);
@@ -122,6 +124,7 @@ public class ShelfAgent extends Agent {
 			}
 
 		}
+
 	}
 
 }

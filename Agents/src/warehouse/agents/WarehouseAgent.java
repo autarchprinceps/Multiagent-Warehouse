@@ -57,7 +57,7 @@ public class WarehouseAgent extends Agent {
 				// Create Order Agent and hand over data
 				String orderAgentName = "Order" + ordr.id;
 				try {
-					AgentController ac = getContainerController().createNewAgent(orderAgentName, "OrderAgent", new Object[]{
+					AgentController ac = getContainerController().createNewAgent(orderAgentName, "warehouse.agents.OrderAgent", new Object[]{
 							ordr.items
 					});
 					ac.start();
@@ -66,6 +66,8 @@ public class WarehouseAgent extends Agent {
 				}
 				ordr.handlingAgentAddress = new AID(orderAgentName, AID.ISLOCALNAME);
 				unfinishedOrders.put(ordr.handlingAgentAddress, ordr);
+			} else {
+				block();
 			}
 		}
 	}
@@ -91,6 +93,8 @@ public class WarehouseAgent extends Agent {
 				sb.deleteCharAt(sb.length() - 1);
 				sb.append("]}");
 				response.setContent(sb.toString());
+			} else {
+				block();
 			}
 		}
 	}
@@ -109,6 +113,7 @@ public class WarehouseAgent extends Agent {
 		dfd.setName(getAID());
 		ServiceDescription sd = new ServiceDescription();
 		sd.setName("WarehouseAgent");
+		sd.setType("WA");
 		dfd.addServices(sd);
 		try {
 			DFService.register(this, dfd);

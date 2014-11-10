@@ -42,6 +42,7 @@ public class CustomerAgentStub extends Agent {
 				DFAgentDescription whDesc = new DFAgentDescription();
 				ServiceDescription sd = new ServiceDescription();
 				sd.setName("WarehouseAgent");
+				sd.setType("WA");
 				whDesc.addServices(sd);
 				try {
 					DFAgentDescription[] desc = DFService.search(CustomerAgentStub.this, whDesc);

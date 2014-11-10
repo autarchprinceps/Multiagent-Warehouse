@@ -1,5 +1,6 @@
 package warehouse.agents;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -76,6 +77,8 @@ public class OrderAgent extends Agent {
 				addBehaviour(ack);
 				removeBehaviour(pick);
 				pick = null;
+			} else {
+				block();
 			}
 		}
 		
@@ -91,12 +94,15 @@ public class OrderAgent extends Agent {
 				addBehaviour(finish);
 				removeBehaviour(ack);
 				ack = null;
-			}
-			if(cancel != null) {
-				query = new OrderPickerQuerier();
-				addBehaviour(query);
-				removeBehaviour(ack);
-				ack = null;
+			} else {
+				if(cancel != null) {
+					query = new OrderPickerQuerier();
+					addBehaviour(query);
+					removeBehaviour(ack);
+					ack = null;
+				} else {
+					block();
+				}
 			}
 		}
 		
@@ -171,6 +177,8 @@ public class OrderAgent extends Agent {
 					}
 				});
 				success();
+			} else {
+				block();
 			}
 		}
 		
@@ -187,6 +195,7 @@ public class OrderAgent extends Agent {
 	
 	protected void setup() {
 		done = false;
+		items = new HashMap<>();
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		try {
