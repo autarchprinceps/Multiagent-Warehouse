@@ -21,20 +21,25 @@ public class ShelfAgent extends Agent {
 	public static final String SERVICE_NAME = "shelf";
 
 	private boolean isBusy;
+	private boolean hasRobot;
 	private String item;
 	private int quanity;
 
-	public ShelfAgent(String item, int count) {
-		this.item = item;
-		this.quanity = count;
+	public ShelfAgent() {
+		this.item = "ROTOR";
+		this.quanity = 1;
 		this.isBusy = false;
-		this.addBehaviour(new WaitForItemRequests());
+		this.hasRobot = false;
+		this.addBehaviour(new ItemRequestProtocol());
+		this.addBehaviour(new RobotRequestProtocol());
+		this.addBehaviour(new BroadcastRobots());
 	}
 
 	@Override
 	protected void setup() {
 		DFAgentDescription agentDesc = new DFAgentDescription();
 		ServiceDescription serviceDesc = new ServiceDescription();
+		serviceDesc.setType(SERVICE_NAME);
 		serviceDesc.setName(SERVICE_NAME);
 		agentDesc.setName(getAID());
 		agentDesc.addServices(serviceDesc);
@@ -67,18 +72,75 @@ public class ShelfAgent extends Agent {
 		return item.equals(requestedItem) && requestedCount <= quanity;
 	}
 
-	private class CryForRobot extends OneShotBehaviour {
+	private class BroadcastRobots extends OneShotBehaviour {
 
 		private static final long serialVersionUID = 1L;
 
 		@Override
 		public void action() {
+			ACLMessage itemBroadcast = new ACLMessage(ACLMessage.REQUEST);
+			itemBroadcast.setProtocol("request-robot");
 
+			DFAgentDescription robotDesc = new DFAgentDescription();
+			ServiceDescription sd = new ServiceDescription();
+			sd.setType(RobotAgent.SERVICE_TYPE);
+			robotDesc.addServices(sd);
+			try {
+				for (DFAgentDescription desc : DFService.search(myAgent,
+						robotDesc)) {
+					itemBroadcast.addReceiver(desc.getName());
+				}
+			} catch (FIPAException e) {
+				e.printStackTrace();
+			}
+
+			send(itemBroadcast);
 		}
 
 	}
 
-	private class WaitForItemRequests extends CyclicBehaviour {
+	private class RobotRequestProtocol extends CyclicBehaviour {
+
+		private static final long serialVersionUID = 1L;
+
+		@Override
+		public void action() {
+			ACLMessage message = myAgent.receive(MessageTemplate
+					.MatchProtocol("request-robot"));
+
+			if (message != null) {
+				ACLMessage response = message.createReply();
+				switch (message.getPerformative()) {
+
+				case ACLMessage.REFUSE:
+					break;
+
+				case ACLMessage.PROPOSE:
+
+					if (ShelfAgent.this.hasRobot) {
+						response.setPerformative(ACLMessage.REJECT_PROPOSAL);
+					} else {
+						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+						ShelfAgent.this.hasRobot = true;
+					}
+					break;
+
+				case ACLMessage.INFORM:
+					System.out.println("done");
+					ShelfAgent.this.hasRobot = false;
+					break;
+				}
+
+				send(response);
+
+			} else {
+				block();
+			}
+
+		}
+	}
+
+	private class ItemRequestProtocol extends CyclicBehaviour {
 
 		private static final long serialVersionUID = 1L;
 
@@ -100,6 +162,7 @@ public class ShelfAgent extends Agent {
 					} else {
 						response.setPerformative(ACLMessage.DISCONFIRM);
 					}
+					break;
 
 				case ACLMessage.PROPOSE:
 
@@ -109,13 +172,14 @@ public class ShelfAgent extends Agent {
 						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
 					}
 
-					// TODO robots...
+					myAgent.addBehaviour(new BroadcastRobots());
+					break;
 
 				default:
 					response.setPerformative(ACLMessage.NOT_UNDERSTOOD);
 				}
 
-				myAgent.send(response);
+				send(response);
 
 			} else {
 				block();

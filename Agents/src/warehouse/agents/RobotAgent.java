@@ -18,21 +18,22 @@ import java.util.Random;
  */
 public class RobotAgent extends Agent {
 
-	public static final String SERVICE_NAME = "shelf-robot";
+	public static final String SERVICE_TYPE = "shelf-robot";
 	private static final long serialVersionUID = 1L;
 	private static Random rand = new Random();
 	private boolean isBusy;
 
 	public RobotAgent() {
 		this.isBusy = false;
-		this.addBehaviour(new WaitForShelfRequests());
+		this.addBehaviour(new RobotRequestProtocol());
 	}
 
 	@Override
 	protected void setup() {
 		DFAgentDescription agentDesc = new DFAgentDescription();
 		ServiceDescription serviceDesc = new ServiceDescription();
-		serviceDesc.setName(SERVICE_NAME);
+		serviceDesc.setType(SERVICE_TYPE);
+		serviceDesc.setName(SERVICE_TYPE);
 		agentDesc.setName(getAID());
 		agentDesc.addServices(serviceDesc);
 
@@ -80,7 +81,7 @@ public class RobotAgent extends Agent {
 
 	}
 
-	private class WaitForShelfRequests extends CyclicBehaviour {
+	private class RobotRequestProtocol extends CyclicBehaviour {
 
 		private static final long serialVersionUID = 1L;
 
@@ -95,29 +96,22 @@ public class RobotAgent extends Agent {
 				ACLMessage response = message.createReply();
 
 				switch (message.getPerformative()) {
-				case ACLMessage.QUERY_IF:
+				case ACLMessage.REQUEST:
 
 					if (isBusy) {
-						response.setPerformative(ACLMessage.DISCONFIRM);
+						response.setPerformative(ACLMessage.REFUSE);
 					} else {
-						response.setPerformative(ACLMessage.CONFIRM);
+						response.setPerformative(ACLMessage.PROPOSE);
 					}
+					break;
 
-				case ACLMessage.PROPOSE:
-
-					if (isBusy) {
-						response.setPerformative(ACLMessage.REJECT_PROPOSAL);
-					} else {
-						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-					}
-
+				case ACLMessage.ACCEPT_PROPOSAL:
+					isBusy = true;
 					myAgent.addBehaviour(new TransportShelf(message.getSender()));
-
-				default:
-					response.setPerformative(ACLMessage.NOT_UNDERSTOOD);
+					break;
 				}
 
-				myAgent.send(response);
+				send(response);
 
 			} else {
 				block();
