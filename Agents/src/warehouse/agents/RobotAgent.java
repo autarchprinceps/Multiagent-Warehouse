@@ -30,6 +30,9 @@ public class RobotAgent extends Agent {
 
 	@Override
 	protected void setup() {
+		
+		System.out.println("init " + getName());
+		
 		DFAgentDescription agentDesc = new DFAgentDescription();
 		ServiceDescription serviceDesc = new ServiceDescription();
 		serviceDesc.setType(SERVICE_TYPE);
@@ -64,17 +67,11 @@ public class RobotAgent extends Agent {
 			block(delay * 1000);
 
 			ACLMessage message = new ACLMessage(ACLMessage.INFORM);
-			message.setSender(shelfID);
+			message.addReceiver(shelfID);
 			message.setProtocol("request-robot");
 			myAgent.send(message);
 
-			delay = rand.nextInt(3);
-			block(delay * 1000);
-
-			message = new ACLMessage(ACLMessage.INFORM);
-			message.setSender(shelfID);
-			message.setProtocol("request-robot");
-			myAgent.send(message);
+			// TODO transport the shelf back?
 
 			isBusy = false;
 		}
@@ -109,9 +106,14 @@ public class RobotAgent extends Agent {
 					isBusy = true;
 					myAgent.addBehaviour(new TransportShelf(message.getSender()));
 					break;
+
+				default:
+					response = null;
 				}
 
-				send(response);
+				if (response != null) {
+					send(response);
+				}
 
 			} else {
 				block();
