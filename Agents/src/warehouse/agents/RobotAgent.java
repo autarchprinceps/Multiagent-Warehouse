@@ -30,9 +30,10 @@ public class RobotAgent extends Agent {
 
 	@Override
 	protected void setup() {
-		
-		System.out.println("init " + getName());
-		
+
+		log("setup");
+
+		// REGISTER SERVICE
 		DFAgentDescription agentDesc = new DFAgentDescription();
 		ServiceDescription serviceDesc = new ServiceDescription();
 		serviceDesc.setType(SERVICE_TYPE);
@@ -46,6 +47,15 @@ public class RobotAgent extends Agent {
 			e.printStackTrace();
 		}
 
+	}
+
+	@Override
+	protected void takeDown() {
+		try {
+			DFService.deregister(this);
+		} catch (FIPAException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private class TransportShelf extends OneShotBehaviour {
@@ -121,6 +131,10 @@ public class RobotAgent extends Agent {
 
 		}
 
+	}
+
+	private void log(String log) {
+		System.out.println(getLocalName() + ": " + log);
 	}
 
 }

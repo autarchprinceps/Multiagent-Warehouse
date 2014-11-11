@@ -4,6 +4,7 @@ import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
+import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -28,6 +29,8 @@ public class ShelfAgent extends Agent {
 	private String item;
 	private int quantity;
 
+	private TickerBehaviour broadcastRobots;
+
 	public ShelfAgent() {
 		this.isBusy = false;
 		this.hasRobot = false;
@@ -38,12 +41,14 @@ public class ShelfAgent extends Agent {
 	@Override
 	protected void setup() {
 
+		// INIT FILEDS WITH ARGS
 		Object[] args = getArguments();
 		this.item = args[0].toString();
 		this.quantity = Integer.parseInt(args[1].toString());
 
-		log("init with item " + item + ": " + quantity);
+		log("setup with item " + item + ": " + quantity);
 
+		// REGISTER SERVICE
 		DFAgentDescription agentDesc = new DFAgentDescription();
 		ServiceDescription serviceDesc = new ServiceDescription();
 		serviceDesc.setType(SERVICE_NAME);
@@ -79,20 +84,18 @@ public class ShelfAgent extends Agent {
 		return item.equals(requestedItem) && requestedCount <= quantity;
 	}
 
-	private class TravelToOrderPicker extends OneShotBehaviour {
+	private class BroadcastRobots extends TickerBehaviour {
+
+		public BroadcastRobots(Agent a, long period) {
+			super(a, period);
+		}
 
 		private static final long serialVersionUID = 1L;
 
-		public TravelToOrderPicker(AID sender) {
-			isBusy = true;
-			hasRobot = false;
-			currentOrderPicker = sender;
-		}
-
 		@Override
-		public void action() {
+		public void onTick() {
 
-			log("will travel soon to OrderPicker " + currentOrderPicker);
+			log("broadcast robots ");
 
 			// CRY FOR ROBOTS
 			ACLMessage itemBroadcast = new ACLMessage(ACLMessage.REQUEST);
@@ -133,7 +136,6 @@ public class ShelfAgent extends Agent {
 
 			// TODO travel back?
 			isBusy = false;
-			hasRobot = false;
 			currentOrderPicker = null;
 			log("reset to init state");
 		}
@@ -161,8 +163,12 @@ public class ShelfAgent extends Agent {
 					if (hasRobot) {
 						response.setPerformative(ACLMessage.REJECT_PROPOSAL);
 					} else {
-						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+
+						// WE NOW HAVE A ROBOT
 						log("found a robot");
+						broadcastRobots.stop();
+						removeBehaviour(broadcastRobots);
+						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
 						hasRobot = true;
 					}
 					break;
@@ -171,6 +177,7 @@ public class ShelfAgent extends Agent {
 
 					// WE ARRIVED
 					addBehaviour(new ArriveAtOrderPicker());
+					response = null;
 					break;
 
 				default:
@@ -220,8 +227,10 @@ public class ShelfAgent extends Agent {
 
 						// NOW WE SERVE THAT ORDERPICKER
 						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-						addBehaviour(new TravelToOrderPicker(
-								message.getSender()));
+						isBusy = true;
+						currentOrderPicker = message.getSender();
+						broadcastRobots = new BroadcastRobots(myAgent, 3000);
+						addBehaviour(broadcastRobots);
 					}
 
 					break;
@@ -242,7 +251,7 @@ public class ShelfAgent extends Agent {
 	}
 
 	private void log(String log) {
-		System.out.println(getName() + ": " + log);
+		System.out.println(getLocalName() + ": " + log);
 	}
 
 }
