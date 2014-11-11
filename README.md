@@ -1,4 +1,4 @@
-# Multiagent-Warehouse
+# Warehouse
 
 ## Arbeitsaufteilung
 
