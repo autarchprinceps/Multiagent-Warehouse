@@ -215,6 +215,7 @@ public class ShelfAgent extends Agent {
 					if (hasItem(message.getContent())) {
 						response.setPerformative(ACLMessage.CONFIRM);
 					} else {
+						// TODO is this necessary?
 						response.setPerformative(ACLMessage.DISCONFIRM);
 					}
 					break;
