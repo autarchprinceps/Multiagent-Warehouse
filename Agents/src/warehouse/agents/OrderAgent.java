@@ -36,6 +36,7 @@ public class OrderAgent extends Agent {
 			msg.setContent("free");
 			DFAgentDescription orderPickerDesc = new DFAgentDescription();
 			ServiceDescription sd = new ServiceDescription();
+			sd.setType("pick");
 			sd.setName("pick");
 			orderPickerDesc.addServices(sd);
 			try {

@@ -41,7 +41,7 @@ public class OrderPicker extends Agent
 	{
 		DFAgentDescription agentDescription = new DFAgentDescription();
 		ServiceDescription serviceDescription = new ServiceDescription();
-		// TODO setType oder setName?
+		serviceDescription.setName(SERVICE_NAME);
 		serviceDescription.setType(SERVICE_NAME);
 		agentDescription.addServices(serviceDescription);
 		try
