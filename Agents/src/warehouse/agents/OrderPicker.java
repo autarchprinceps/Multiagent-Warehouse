@@ -12,7 +12,7 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
-import java.util.Iterator;
+import java.util.Properties;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -30,12 +30,13 @@ public class OrderPicker extends Agent
 	private JSONArray orderList;
 	private JSONObject order;
 
+	private final Properties orderBCStatus = new Properties();
+	private final Properties orderCompleteStatus = new Properties();
+
 	private Behaviour idle;
 	private Behaviour orderReceiver;
-	private Behaviour itemBroadcaster;
-	private Behaviour selectShelf;
-	private Behaviour itemPick;
-	private Behaviour orderSender;
+	private Behaviour shelfInteraction;
+	private Behaviour finishOrder;
 
 	@Override
 	protected void setup()
@@ -44,6 +45,7 @@ public class OrderPicker extends Agent
 		ServiceDescription serviceDescription = new ServiceDescription();
 		serviceDescription.setName(SERVICE_NAME);
 		serviceDescription.setType(SERVICE_NAME);
+		agentDescription.setName(getAID());
 		agentDescription.addServices(serviceDescription);
 		try
 		{
@@ -54,7 +56,7 @@ public class OrderPicker extends Agent
 			e.printStackTrace();
 		}
 
-		System.out.println("OrderPicker " + getAID().getName() + "available.");
+		System.out.println(getLocalName() + ": available.");
 		this.isIdle = true;
 
 		this.idle = new IdleBehaviour();
@@ -75,7 +77,7 @@ public class OrderPicker extends Agent
 		{
 			fe.printStackTrace();
 		}
-		System.out.println("OrderPicker " + getAID().getName() + " terminating.");
+		System.out.println(getLocalName() + ": terminating.");
 	}
 
 	private class IdleBehaviour extends CyclicBehaviour
@@ -85,13 +87,13 @@ public class OrderPicker extends Agent
 		@Override
 		public void action()
 		{
-			ACLMessage request = receive(MessageTemplate.MatchPerformative(ACLMessage.QUERY_IF));
-			if (request != null && OrderPicker.this.isIdle)
+			ACLMessage query_if = receive(MessageTemplate.MatchPerformative(ACLMessage.QUERY_IF));
+			if (query_if != null && OrderPicker.this.isIdle)
 			{
-				ACLMessage response = new ACLMessage(ACLMessage.CONFIRM);
-				response.addReceiver(request.getSender());
+				ACLMessage response = query_if.createReply();
+				response.setPerformative(ACLMessage.CONFIRM);
 				response.setLanguage("JSON");
-				response.setContent(new JSONObject().put(getAID().getName(), true).toString());
+				response.setContent(new JSONObject().put(getLocalName(), true).toString());
 				send(response);
 			}
 		}
@@ -110,36 +112,40 @@ public class OrderPicker extends Agent
 			{
 				if (OrderPicker.this.isIdle)
 				{
-					System.out.println("OrderPicker REQUEST received, AGREE send: " + OrderPicker.this.getName());
+					System.out.println("OrderPicker REQUEST received, AGREE send: " + getLocalName());
 					if (request.getLanguage().equals("JSON"))
 					{
 						OrderPicker.this.isIdle = false;
-						ACLMessage confirmMsg = new ACLMessage(ACLMessage.AGREE);
-						confirmMsg.addReceiver(request.getSender());
-						confirmMsg.setLanguage("JSON");
-						confirmMsg.setContent(new JSONObject().put(getAID().getName(), true).toString());
-						send(confirmMsg);
-						
+						ACLMessage agree = request.createReply();
+						agree.setPerformative(ACLMessage.AGREE);
+						agree.setLanguage("JSON");
+						agree.setProtocol("JSON");
+						agree.setContent(new JSONObject().put(getLocalName(), true).toString());
+						send(agree);
+
 						System.out.println("OrderPicker REQUEST items: " + request.getContent());
 						OrderPicker.this.orderList = new JSONArray(request.getContent());
-						
 
-						// OrderPicker.this.selectShelf = new SelectShelf();
-						// addBehaviour(OrderPicker.this.selectShelf);
+						OrderPicker.this.shelfInteraction = new ShelfInteraction();
+						addBehaviour(OrderPicker.this.shelfInteraction);
 
-						OrderPicker.this.itemBroadcaster = new ItemBroadcaster();
-						addBehaviour(OrderPicker.this.itemBroadcaster);
-						// TODO
+						for (int i = 0; i < OrderPicker.this.orderList.length(); i++)
+						{
+							Pair<String, Integer> item = Pair.convert(OrderPicker.this.orderList.getJSONObject(i));
+							Behaviour itemBroadcast = new ItemBroadcaster(item);
+							addBehaviour(itemBroadcast);
+						}
 					}
 				}
 				else
 				{ // isIdle == false
-					System.out.println("OrderPicker REQUEST received, CANCEL send: " + OrderPicker.this.getName());
-					ACLMessage cancelMsg = new ACLMessage(ACLMessage.CANCEL);
-					cancelMsg.addReceiver(request.getSender());
-					cancelMsg.setLanguage("JSON");
-					cancelMsg.setContent(new JSONObject().put(getAID().getName(), false).toString());
-					send(cancelMsg);
+					System.out.println("OrderPicker REQUEST received, CANCEL send: " + getLocalName());
+					ACLMessage cancel = request.createReply();
+					cancel.setPerformative(ACLMessage.CANCEL);
+					cancel.setLanguage("JSON");
+					cancel.setProtocol("JSON");
+					cancel.setContent(new JSONObject().put(getLocalName(), false).toString());
+					send(cancel);
 				}
 			}
 		}
@@ -150,83 +156,102 @@ public class OrderPicker extends Agent
 	{
 		private static final long serialVersionUID = 1L;
 
+		private final Pair<String, Integer> item;
+
+		public ItemBroadcaster(Pair<String, Integer> item)
+		{
+			this.item = item;
+		}
+
 		@Override
 		public void action()
 		{
-			for(int i = 0; i < OrderPicker.this.orderList.length(); i++)
+			ACLMessage itemBroadcast = new ACLMessage(ACLMessage.QUERY_IF);
+			itemBroadcast.setProtocol("request-item");
+
+			DFAgentDescription orderPickerDesc = new DFAgentDescription();
+			ServiceDescription sd = new ServiceDescription();
+			sd.setType("shelf");
+			orderPickerDesc.addServices(sd);
+			try
 			{
-				
-				Pair<String, Integer> item = Pair.convert(OrderPicker.this.orderList.getJSONObject(i));
-
-				ACLMessage itemBroadcast = new ACLMessage(ACLMessage.QUERY_IF);
-				itemBroadcast.setLanguage("JSON");
-				itemBroadcast.setProtocol("request-item");
-
-				DFAgentDescription orderPickerDesc = new DFAgentDescription();
-				ServiceDescription sd = new ServiceDescription();
-				sd.setType("shelf");
-				orderPickerDesc.addServices(sd);
-				try
+				for (DFAgentDescription desc : DFService.search(OrderPicker.this, orderPickerDesc))
 				{
-					for (DFAgentDescription desc : DFService.search(OrderPicker.this, orderPickerDesc))
-					{
-						itemBroadcast.addReceiver(desc.getName());
-					}
+					itemBroadcast.addReceiver(desc.getName());
 				}
-				catch (FIPAException e)
+			}
+			catch (FIPAException e)
+			{
+				e.printStackTrace();
+			}
+
+			OrderPicker.this.orderBCStatus.put(this.item, true);
+			itemBroadcast.setContent(this.item.toString());
+			send(itemBroadcast);
+
+		}
+
+	}
+
+	private class ShelfInteraction extends CyclicBehaviour
+	{
+		@Override
+		public void action()
+		{
+			ACLMessage msg = receive(MessageTemplate.MatchProtocol("request-item"));
+
+			if (msg != null)
+			{
+				switch (msg.getPerformative())
 				{
-					e.printStackTrace();
+				case ACLMessage.CONFIRM:
+					ACLMessage propose = msg.createReply();
+					propose.setPerformative(ACLMessage.PROPOSE);
+					propose.setContent(new JSONObject().put(getLocalName(), true).toString());
+					send(propose);
+					break;
+				case ACLMessage.DISCONFIRM:
+					// Behaviour itemBroadcast = new ItemBroadcaster(new
+					// JSONArray(msg.getContent()));
+					// addBehaviour(itemBroadcast);
+					break;
+				case ACLMessage.ACCEPT_PROPOSAL:
+					// "accept" -> do nothing?
+					break;
+				case ACLMessage.REJECT_PROPOSAL:
+					// same as disconfirm
+					break;
+				case ACLMessage.INFORM:
+					// take item
+					break;
+				default:
+					// ignore, do nothing
+					break;
 				}
-
-				itemBroadcast.setContent(item.toString());
-				send(itemBroadcast);
-
 			}
 		}
 
 	}
 
-	private class SelectShelf extends CyclicBehaviour
-	{
-
-		@Override
-		public void action()
-		{
-			ACLMessage confirm = receive(MessageTemplate.MatchPerformative(ACLMessage.CONFIRM));
-			if (confirm.getProtocol().equals("request-item"))
-			{
-				new JSONObject(confirm.getContent());
-
-			}
-
-		}
-
-	}
-
-	private class ItemPick extends CyclicBehaviour
-	{
-
-		@Override
-		public void action()
-		{
-			// TODO Auto-generated method stub
-
-		}
-
-	}
-
-	private class OrderSender extends OneShotBehaviour
+	private class FinishOrder extends OneShotBehaviour
 	{
 		private static final long serialVersionUID = 1L;
 
 		@Override
 		public void action()
 		{
-			ACLMessage orderParts = new ACLMessage(ACLMessage.INFORM);
-			orderParts.addReceiver(new AID("OrderAgent", AID.ISLOCALNAME));
-			orderParts.setLanguage("JSON");
-			orderParts.setContent(OrderPicker.this.order.toString());
-			send(orderParts);
+			ACLMessage inform = new ACLMessage(ACLMessage.INFORM);
+			inform.addReceiver(new AID("OrderAgent", AID.ISLOCALNAME));
+			inform.setLanguage("JSON");
+			inform.setProtocol("JSON");
+			inform.setContent(OrderPicker.this.order.toString());
+			send(inform);
+
+			OrderPicker.this.orderBCStatus.clear();
+			OrderPicker.this.orderCompleteStatus.clear();
+			OrderPicker.this.isIdle = true;
+
+			removeBehaviour(OrderPicker.this.shelfInteraction);
 		}
 
 	}
