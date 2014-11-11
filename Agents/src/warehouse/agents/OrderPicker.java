@@ -87,7 +87,7 @@ public class OrderPicker extends Agent
 			ACLMessage request = receive(MessageTemplate.MatchPerformative(ACLMessage.QUERY_IF));
 			if (request != null && OrderPicker.this.isIdle)
 			{
-				ACLMessage response = new ACLMessage(ACLMessage.AGREE);
+				ACLMessage response = new ACLMessage(ACLMessage.CONFIRM);
 				response.addReceiver(request.getSender());
 				response.setLanguage("JSON");
 				response.setContent(new JSONObject().put(getAID().getName(), true).toString());
