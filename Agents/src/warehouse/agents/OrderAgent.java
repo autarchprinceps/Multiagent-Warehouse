@@ -66,12 +66,13 @@ public class OrderAgent extends Agent {
 				response.setLanguage("JSON");
 				response.addReceiver(recMsg.getSender());
 				
-				StringBuilder sb = new StringBuilder('[');
+				StringBuilder sb = new StringBuilder("[");
 				for(Pair<String, Integer> p : items.keySet()) {
-					sb.append(p.getFirst()).append(":").append(p.getSecond()).append(",");
+					sb.append('{').append(p.getFirst()).append(":").append(p.getSecond()).append("},");
 				}
 				sb.deleteCharAt(sb.length() - 1);
 				sb.append(']');
+				System.out.println("OrderAgent REQUEST items: " + sb.toString());
 				response.setContent(sb.toString());
 				send(response);
 				ack = new AckRecv();

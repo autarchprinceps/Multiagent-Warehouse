@@ -120,6 +120,7 @@ public class OrderPicker extends Agent
 						confirmMsg.setContent(new JSONObject().put(getAID().getName(), true).toString());
 						send(confirmMsg);
 						
+						System.out.println("OrderPicker REQUEST items: " + request.getContent());
 						OrderPicker.this.orderList = new JSONArray(request.getContent());
 						
 
