@@ -33,7 +33,7 @@ public class CustomerAgentStub extends Agent {
 			ex.printStackTrace();
 		}
 		
-		this.addBehaviour(new TickerBehaviour(this, 1000) {
+		this.addBehaviour(new TickerBehaviour(this, 10000) {
 			private static final long serialVersionUID = -5570642512218060415L;
 
 			@Override

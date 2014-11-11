@@ -38,4 +38,9 @@ class Pair<K, V> {
     		return false;
     	}
     }
+    
+    @Override
+    public String toString() {
+    	return '{' + first.toString() + ':' + second.toString() + '}';
+    }
 }

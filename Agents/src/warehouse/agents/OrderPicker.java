@@ -14,6 +14,7 @@ import jade.lang.acl.MessageTemplate;
 
 import java.util.Iterator;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
@@ -26,7 +27,7 @@ public class OrderPicker extends Agent
 	public static final String SERVICE_NAME = "pick";
 
 	private boolean isIdle;
-	private JSONObject orderList;
+	private JSONArray orderList;
 	private JSONObject order;
 
 	private Behaviour idle;
@@ -109,16 +110,18 @@ public class OrderPicker extends Agent
 			{
 				if (OrderPicker.this.isIdle)
 				{
+					System.out.println("OrderPicker REQUEST received, AGREE send: " + OrderPicker.this.getName());
 					if (request.getLanguage().equals("JSON"))
 					{
-						OrderPicker.this.orderList = new JSONObject(request.getContent());
 						OrderPicker.this.isIdle = false;
-
 						ACLMessage confirmMsg = new ACLMessage(ACLMessage.AGREE);
 						confirmMsg.addReceiver(request.getSender());
 						confirmMsg.setLanguage("JSON");
 						confirmMsg.setContent(new JSONObject().put(getAID().getName(), true).toString());
 						send(confirmMsg);
+						
+						OrderPicker.this.orderList = new JSONArray(request.getContent());
+						
 
 						// OrderPicker.this.selectShelf = new SelectShelf();
 						// addBehaviour(OrderPicker.this.selectShelf);
@@ -130,6 +133,7 @@ public class OrderPicker extends Agent
 				}
 				else
 				{ // isIdle == false
+					System.out.println("OrderPicker REQUEST received, CANCEL send: " + OrderPicker.this.getName());
 					ACLMessage cancelMsg = new ACLMessage(ACLMessage.CANCEL);
 					cancelMsg.addReceiver(request.getSender());
 					cancelMsg.setLanguage("JSON");
@@ -148,11 +152,10 @@ public class OrderPicker extends Agent
 		@Override
 		public void action()
 		{
-			for (Iterator<String> it = OrderPicker.this.orderList.keys(); it.hasNext();)
+			for(int i = 0; i < OrderPicker.this.orderList.length(); i++)
 			{
-				JSONObject selectedItem = new JSONObject();
-
-				selectedItem.put(it.next(), OrderPicker.this.orderList.get(it.next()));
+				
+				Pair<String, Integer> item = Pair.convert(OrderPicker.this.orderList.getJSONObject(i));
 
 				ACLMessage itemBroadcast = new ACLMessage(ACLMessage.QUERY_IF);
 				itemBroadcast.setLanguage("JSON");
@@ -173,7 +176,7 @@ public class OrderPicker extends Agent
 					e.printStackTrace();
 				}
 
-				itemBroadcast.setContent(selectedItem.toString());
+				itemBroadcast.setContent(item.toString());
 				send(itemBroadcast);
 
 			}
