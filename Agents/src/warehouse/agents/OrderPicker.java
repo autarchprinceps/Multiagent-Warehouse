@@ -160,6 +160,7 @@ public class OrderPicker extends Agent
 
 				ACLMessage itemBroadcast = new ACLMessage(ACLMessage.QUERY_IF);
 				itemBroadcast.setLanguage("JSON");
+				itemBroadcast.setProtocol("request-item");
 
 				DFAgentDescription orderPickerDesc = new DFAgentDescription();
 				ServiceDescription sd = new ServiceDescription();

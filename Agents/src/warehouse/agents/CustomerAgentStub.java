@@ -22,7 +22,7 @@ import jade.lang.acl.MessageTemplate;
 public class CustomerAgentStub extends Agent {
 	private static final long serialVersionUID = 1018982190165117345L;
 	private Random r = new Random();
-	private String[] components = new String[]{ "Rotor", "Wing", "Body", "Engine" };
+	private String[] components = new String[]{ "ROTOR", "STICK" };
 	
 	protected void setup() {
 		DFAgentDescription dfd = new DFAgentDescription();
