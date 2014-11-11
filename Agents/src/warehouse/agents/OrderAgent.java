@@ -64,7 +64,7 @@ public class OrderAgent extends Agent {
 			if(recMsg != null) {
 				ACLMessage response = new ACLMessage(ACLMessage.REQUEST);
 				response.setLanguage("JSON");
-				response.addReceiver(response.getSender());
+				response.addReceiver(recMsg.getSender());
 				
 				StringBuilder sb = new StringBuilder('[');
 				for(Pair<String, Integer> p : items.keySet()) {
@@ -78,6 +78,7 @@ public class OrderAgent extends Agent {
 				addBehaviour(ack);
 				removeBehaviour(pick);
 				pick = null;
+				System.out.println("OrderAgent CONFIRM received, REQUEST send: " + OrderAgent.this.getName());
 			} else {
 				block();
 			}
@@ -95,12 +96,14 @@ public class OrderAgent extends Agent {
 				addBehaviour(finish);
 				removeBehaviour(ack);
 				ack = null;
+				System.out.println("OrderAgent AGREE received, REQUEST processing: " + OrderAgent.this.getName());
 			} else {
 				if(cancel != null) {
 					query = new OrderPickerQuerier();
 					addBehaviour(query);
 					removeBehaviour(ack);
 					ack = null;
+					System.out.println("OrderAgent CANCEL received, restarting picking: " + OrderAgent.this.getName());
 				} else {
 					block();
 				}
