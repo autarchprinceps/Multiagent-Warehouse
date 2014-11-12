@@ -106,6 +106,10 @@ public class OrderPicker extends Agent
 				response.setContent(new JSONObject().put(getLocalName(), true).toString());
 				send(response);
 			}
+			else
+			{
+				block();
+			}
 		}
 
 	}
@@ -160,6 +164,10 @@ public class OrderPicker extends Agent
 					send(cancel);
 				}
 			}
+			else
+			{
+				block();
+			}
 		}
 
 	}
@@ -200,7 +208,7 @@ public class OrderPicker extends Agent
 			OrderPicker.this.orderBCStatus.put(this.item, false);
 			itemBroadcast.setContent(this.item.toString());
 			send(itemBroadcast);
-
+			removeBehaviour(this);
 		}
 	}
 
@@ -257,6 +265,10 @@ public class OrderPicker extends Agent
 					// ignore, do nothing
 					break;
 				}
+			}
+			else
+			{
+				block();
 			}
 		}
 	}
