@@ -31,8 +31,8 @@ public class OrderPicker extends Agent
 	private JSONArray orderList;
 	private JSONArray order;
 
-	private final Map<JSONObject, Boolean> orderBCStatus = new HashMap<JSONObject, Boolean>();
-	private final Map<JSONObject, Boolean> orderCompleteStatus = new HashMap<JSONObject, Boolean>();
+	private final Map<Pair<String, Integer>, Boolean> orderBCStatus = new HashMap<Pair<String, Integer>, Boolean>();
+	private final Map<Pair<String, Integer>, Boolean> orderCompleteStatus = new HashMap<Pair<String, Integer>, Boolean>();
 
 	private Behaviour idle;
 	private Behaviour orderReceiver;
@@ -83,7 +83,7 @@ public class OrderPicker extends Agent
 	private boolean checkOrderCompletion()
 	{
 		boolean tmp = true;
-		for (JSONObject key : this.orderCompleteStatus.keySet())
+		for (Pair<String, Integer> key : this.orderCompleteStatus.keySet())
 		{
 			tmp = tmp && this.orderCompleteStatus.get(key);
 		}
@@ -145,10 +145,9 @@ public class OrderPicker extends Agent
 
 						for (int i = 0; i < OrderPicker.this.orderList.length(); i++)
 						{
-							// Pair<String, Integer> item =
-							// Pair.convert(OrderPicker.this.orderList.getJSONObject(i));
+							Pair<String, Integer> item = Pair.convert(OrderPicker.this.orderList.getJSONObject(i));
 
-							Behaviour itemBroadcast = new ItemBroadcaster(OrderPicker.this.orderList.getJSONObject(i));
+							Behaviour itemBroadcast = new ItemBroadcaster(item);
 							addBehaviour(itemBroadcast);
 						}
 					}
@@ -176,9 +175,9 @@ public class OrderPicker extends Agent
 	{
 		private static final long serialVersionUID = 1L;
 
-		private final JSONObject item;
+		private final Pair<String, Integer> item;
 
-		public ItemBroadcaster(JSONObject item)
+		public ItemBroadcaster(Pair<String, Integer> item)
 		{
 			this.item = item;
 		}
@@ -223,7 +222,7 @@ public class OrderPicker extends Agent
 
 			if (shelfAnswer != null)
 			{
-				JSONObject content = new JSONObject(shelfAnswer.getContent());
+				Pair<String, Integer> content = Pair.convert(new JSONObject(shelfAnswer.getContent()));
 				switch (shelfAnswer.getPerformative())
 				{
 				case ACLMessage.CONFIRM:
