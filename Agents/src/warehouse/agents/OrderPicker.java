@@ -12,7 +12,8 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
-import java.util.Properties;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -30,8 +31,9 @@ public class OrderPicker extends Agent
 	private JSONArray orderList;
 	private JSONObject order;
 
-	private final Properties orderBCStatus = new Properties();
-	private final Properties orderCompleteStatus = new Properties();
+	private final Map<JSONObject, Boolean> orderBCStatus = new HashMap<JSONObject, Boolean>();
+	private final Map<JSONObject, Boolean> orderCompleteStatus = new HashMap<JSONObject, Boolean>();
+	private boolean isOrderComplete;
 
 	private Behaviour idle;
 	private Behaviour orderReceiver;
@@ -58,12 +60,12 @@ public class OrderPicker extends Agent
 
 		System.out.println(getLocalName() + ": available.");
 		this.isIdle = true;
+		this.isOrderComplete = true;
 
 		this.idle = new IdleBehaviour();
 		this.orderReceiver = new OrderReceiver();
 		addBehaviour(this.idle);
 		addBehaviour(this.orderReceiver);
-
 	}
 
 	@Override
@@ -78,6 +80,16 @@ public class OrderPicker extends Agent
 			fe.printStackTrace();
 		}
 		System.out.println(getLocalName() + ": terminating.");
+	}
+
+	private boolean checkOrderCompletion()
+	{
+		boolean tmp = true;
+		for (JSONObject key : this.orderCompleteStatus.keySet())
+		{
+			tmp = tmp && this.orderCompleteStatus.get(key);
+		}
+		return tmp;
 	}
 
 	private class IdleBehaviour extends CyclicBehaviour
@@ -116,6 +128,7 @@ public class OrderPicker extends Agent
 					if (request.getLanguage().equals("JSON"))
 					{
 						OrderPicker.this.isIdle = false;
+						OrderPicker.this.isOrderComplete = false;
 						ACLMessage agree = request.createReply();
 						agree.setPerformative(ACLMessage.AGREE);
 						agree.setLanguage("JSON");
@@ -131,8 +144,10 @@ public class OrderPicker extends Agent
 
 						for (int i = 0; i < OrderPicker.this.orderList.length(); i++)
 						{
-							Pair<String, Integer> item = Pair.convert(OrderPicker.this.orderList.getJSONObject(i));
-							Behaviour itemBroadcast = new ItemBroadcaster(item);
+							// Pair<String, Integer> item =
+							// Pair.convert(OrderPicker.this.orderList.getJSONObject(i));
+
+							Behaviour itemBroadcast = new ItemBroadcaster(OrderPicker.this.orderList.getJSONObject(i));
 							addBehaviour(itemBroadcast);
 						}
 					}
@@ -156,9 +171,9 @@ public class OrderPicker extends Agent
 	{
 		private static final long serialVersionUID = 1L;
 
-		private final Pair<String, Integer> item;
+		private final JSONObject item;
 
-		public ItemBroadcaster(Pair<String, Integer> item)
+		public ItemBroadcaster(JSONObject item)
 		{
 			this.item = item;
 		}
@@ -185,44 +200,61 @@ public class OrderPicker extends Agent
 				e.printStackTrace();
 			}
 
-			OrderPicker.this.orderBCStatus.put(this.item, true);
+			OrderPicker.this.orderBCStatus.put(this.item, false);
 			itemBroadcast.setContent(this.item.toString());
 			send(itemBroadcast);
 
 		}
-
 	}
 
 	private class ShelfInteraction extends CyclicBehaviour
 	{
+		private static final long serialVersionUID = 1L;
+
 		@Override
 		public void action()
 		{
-			ACLMessage msg = receive(MessageTemplate.MatchProtocol("request-item"));
+			ACLMessage shelfAnswer = receive(MessageTemplate.MatchProtocol("request-item"));
 
-			if (msg != null)
+			if (shelfAnswer != null)
 			{
-				switch (msg.getPerformative())
+				JSONObject content = new JSONObject(shelfAnswer.getContent());
+				switch (shelfAnswer.getPerformative())
 				{
 				case ACLMessage.CONFIRM:
-					ACLMessage propose = msg.createReply();
-					propose.setPerformative(ACLMessage.PROPOSE);
-					propose.setContent(new JSONObject().put(getLocalName(), true).toString());
-					send(propose);
-					break;
-				case ACLMessage.DISCONFIRM:
-					// Behaviour itemBroadcast = new ItemBroadcaster(new
-					// JSONArray(msg.getContent()));
-					// addBehaviour(itemBroadcast);
+					if (OrderPicker.this.orderBCStatus.containsKey(content) == true
+							&& OrderPicker.this.orderBCStatus.get(content) == false)
+					{
+						OrderPicker.this.orderBCStatus.put(content, true);
+						ACLMessage propose = shelfAnswer.createReply();
+						propose.setPerformative(ACLMessage.PROPOSE);
+						propose.setContent(new JSONObject().put(getLocalName(), true).toString());
+						send(propose);
+					}
 					break;
 				case ACLMessage.ACCEPT_PROPOSAL:
-					// "accept" -> do nothing?
+					OrderPicker.this.orderCompleteStatus.put(content, false);
 					break;
 				case ACLMessage.REJECT_PROPOSAL:
-					// same as disconfirm
+					OrderPicker.this.orderBCStatus.put(content, false);
+					Behaviour itemBroadcast = new ItemBroadcaster(content);
+					addBehaviour(itemBroadcast);
 					break;
 				case ACLMessage.INFORM:
-					// take item
+					if (checkOrderCompletion())
+					{
+						OrderPicker.this.finishOrder = new FinishOrder();
+						addBehaviour(OrderPicker.this.finishOrder);
+					}
+					else
+					{
+						if (OrderPicker.this.orderCompleteStatus.containsKey(content) == true
+								&& OrderPicker.this.orderCompleteStatus.get(content) == false)
+						{
+							// take item
+							OrderPicker.this.orderCompleteStatus.put(content, true);
+						}
+					}
 					break;
 				default:
 					// ignore, do nothing
@@ -230,7 +262,6 @@ public class OrderPicker extends Agent
 				}
 			}
 		}
-
 	}
 
 	private class FinishOrder extends OneShotBehaviour
@@ -247,11 +278,13 @@ public class OrderPicker extends Agent
 			inform.setContent(OrderPicker.this.order.toString());
 			send(inform);
 
+			removeBehaviour(OrderPicker.this.shelfInteraction);
+
 			OrderPicker.this.orderBCStatus.clear();
 			OrderPicker.this.orderCompleteStatus.clear();
-			OrderPicker.this.isIdle = true;
 
-			removeBehaviour(OrderPicker.this.shelfInteraction);
+			OrderPicker.this.isIdle = true;
+			OrderPicker.this.isOrderComplete = true;
 		}
 
 	}
