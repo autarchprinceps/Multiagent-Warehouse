@@ -227,9 +227,11 @@ public class OrderPicker extends Agent
 				switch (shelfAnswer.getPerformative())
 				{
 				case ACLMessage.CONFIRM:
+					System.out.println("OrderPicker CONFIRM received: " + OrderPicker.this.getLocalName());
 					if (OrderPicker.this.orderBCStatus.containsKey(content) == true
 							&& OrderPicker.this.orderBCStatus.get(content) == false)
 					{
+						System.out.println("OrderPicker PROPOSE sending:" + OrderPicker.this.getLocalName());
 						OrderPicker.this.orderBCStatus.put(content, true);
 						ACLMessage propose = shelfAnswer.createReply();
 						propose.setPerformative(ACLMessage.PROPOSE);
