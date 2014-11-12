@@ -25,6 +25,7 @@ public class ShelfAgent extends Agent {
 	private boolean isBusy;
 	private boolean hasRobot;
 	private AID currentOrderPicker;
+	private String currentOrderPickerRequest;
 
 	private String item;
 	private int quantity;
@@ -132,11 +133,13 @@ public class ShelfAgent extends Agent {
 			ACLMessage informMessage = new ACLMessage(ACLMessage.INFORM);
 			informMessage.setProtocol("request-shelf");
 			informMessage.addReceiver(currentOrderPicker);
+			informMessage.setContent(currentOrderPickerRequest);
 			send(informMessage);
 
 			// TODO travel back?
 			isBusy = false;
 			currentOrderPicker = null;
+			currentOrderPickerRequest = null;
 			log("reset to init state");
 		}
 
@@ -208,6 +211,7 @@ public class ShelfAgent extends Agent {
 			if (message != null) {
 
 				ACLMessage response = message.createReply();
+				response.setContent(message.getContent());
 
 				switch (message.getPerformative()) {
 				case ACLMessage.QUERY_IF:
@@ -215,8 +219,8 @@ public class ShelfAgent extends Agent {
 					if (hasItem(message.getContent())) {
 						response.setPerformative(ACLMessage.CONFIRM);
 					} else {
-						// TODO is this necessary?
-						response.setPerformative(ACLMessage.DISCONFIRM);
+						response = null;
+						// response.setPerformative(ACLMessage.DISCONFIRM);
 					}
 					break;
 
@@ -229,6 +233,7 @@ public class ShelfAgent extends Agent {
 						// NOW WE SERVE THAT ORDERPICKER
 						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
 						isBusy = true;
+						currentOrderPickerRequest = message.getContent();
 						currentOrderPicker = message.getSender();
 						broadcastRobots = new BroadcastRobots(myAgent, 3000);
 						addBehaviour(broadcastRobots);
