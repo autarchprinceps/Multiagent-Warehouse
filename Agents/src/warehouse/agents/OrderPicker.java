@@ -29,7 +29,7 @@ public class OrderPicker extends Agent
 
 	private boolean isIdle;
 	private JSONArray orderList;
-	private JSONObject order;
+	private JSONArray order;
 
 	private final Map<JSONObject, Boolean> orderBCStatus = new HashMap<JSONObject, Boolean>();
 	private final Map<JSONObject, Boolean> orderCompleteStatus = new HashMap<JSONObject, Boolean>();
@@ -256,7 +256,11 @@ public class OrderPicker extends Agent
 						if (OrderPicker.this.orderCompleteStatus.containsKey(content) == true
 								&& OrderPicker.this.orderCompleteStatus.get(content) == false)
 						{
-							// take item
+							ACLMessage inform = shelfAnswer.createReply();
+							inform.setPerformative(ACLMessage.INFORM);
+							inform.setContent(content.toString());
+							send(inform);
+							OrderPicker.this.order.put(content);
 							OrderPicker.this.orderCompleteStatus.put(content, true);
 						}
 					}
