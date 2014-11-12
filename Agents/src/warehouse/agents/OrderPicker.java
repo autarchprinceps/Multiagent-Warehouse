@@ -33,7 +33,6 @@ public class OrderPicker extends Agent
 
 	private final Map<JSONObject, Boolean> orderBCStatus = new HashMap<JSONObject, Boolean>();
 	private final Map<JSONObject, Boolean> orderCompleteStatus = new HashMap<JSONObject, Boolean>();
-	private boolean isOrderComplete;
 
 	private Behaviour idle;
 	private Behaviour orderReceiver;
@@ -60,7 +59,6 @@ public class OrderPicker extends Agent
 
 		System.out.println(getLocalName() + ": available.");
 		this.isIdle = true;
-		this.isOrderComplete = true;
 
 		this.idle = new IdleBehaviour();
 		this.orderReceiver = new OrderReceiver();
@@ -128,7 +126,6 @@ public class OrderPicker extends Agent
 					if (request.getLanguage().equals("JSON"))
 					{
 						OrderPicker.this.isIdle = false;
-						OrderPicker.this.isOrderComplete = false;
 						ACLMessage agree = request.createReply();
 						agree.setPerformative(ACLMessage.AGREE);
 						agree.setLanguage("JSON");
@@ -284,7 +281,6 @@ public class OrderPicker extends Agent
 			OrderPicker.this.orderCompleteStatus.clear();
 
 			OrderPicker.this.isIdle = true;
-			OrderPicker.this.isOrderComplete = true;
 		}
 
 	}
