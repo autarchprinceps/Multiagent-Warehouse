@@ -79,7 +79,7 @@ public class OrderAgent extends Agent {
 				addBehaviour(ack);
 				removeBehaviour(pick);
 				pick = null;
-				System.out.println("OrderAgent CONFIRM received, REQUEST send: " + OrderAgent.this.getName());
+				System.out.println("OrderAgent CONFIRM received, REQUEST send: " + OrderAgent.this.getLocalName());
 			} else {
 				block();
 			}
@@ -97,7 +97,7 @@ public class OrderAgent extends Agent {
 				addBehaviour(finish);
 				removeBehaviour(ack);
 				ack = null;
-				System.out.println("OrderAgent AGREE received, REQUEST processing: " + OrderAgent.this.getName());
+				System.out.println("OrderAgent AGREE received, REQUEST processing: " + OrderAgent.this.getLocalName());
 			} else {
 				if(cancel != null) {
 					query = new OrderPickerQuerier();
