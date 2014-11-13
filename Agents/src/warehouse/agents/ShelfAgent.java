@@ -19,22 +19,27 @@ import org.json.JSONObject;
  */
 public class ShelfAgent extends Agent {
 
-	private static final long serialVersionUID = 1L;
 	public static final String SERVICE_NAME = "shelf";
+	private static final long serialVersionUID = 1L;
+	private static final int BCAST_TICKS = 3000;
 
-	private boolean isBusy;
-	private boolean hasRobot;
+	// FIELDS FOR CURRENT SHELF STATE
+	private State currentState;
+	private AID currentRobot;
 	private AID currentOrderPicker;
 	private String currentOrderPickerRequest;
+	private TickerBehaviour broadcastRobots;
 
+	// ITEMS THE SHELF CONTAINS
 	private String item;
 	private int quantity;
 
-	private TickerBehaviour broadcastRobots;
+	private enum State {
+		idle, waitForRobot, travelToOrderPicker, serveOrderPicker, travelBackHome
+	}
 
 	public ShelfAgent() {
-		this.isBusy = false;
-		this.hasRobot = false;
+		this.currentState = State.idle;
 		this.addBehaviour(new ItemRequestProtocol());
 		this.addBehaviour(new RobotRequestProtocol());
 	}
@@ -76,7 +81,7 @@ public class ShelfAgent extends Agent {
 
 	protected boolean hasItem(String jsonRequest) {
 		/*
-		 * EXAMPLE { Rotor : 1 }
+		 * EXAMPLE IN JSON: { ROTOR : 1 }
 		 */
 		Pair<String, Integer> requestedObject = Pair.convert(new JSONObject(
 				jsonRequest));
@@ -96,9 +101,8 @@ public class ShelfAgent extends Agent {
 		@Override
 		public void onTick() {
 
-			log("broadcast robots ");
+			log("broadcast robots");
 
-			// CRY FOR ROBOTS
 			ACLMessage itemBroadcast = new ACLMessage(ACLMessage.REQUEST);
 			itemBroadcast.setProtocol("request-robot");
 
@@ -130,17 +134,28 @@ public class ShelfAgent extends Agent {
 			log("arrived at order picker");
 
 			// INFORM THE ORDER PICKER
-			ACLMessage informMessage = new ACLMessage(ACLMessage.INFORM);
-			informMessage.setProtocol("request-shelf");
-			informMessage.addReceiver(currentOrderPicker);
-			informMessage.setContent(currentOrderPickerRequest);
-			send(informMessage);
+			ACLMessage informOrderPickerMessage = new ACLMessage(
+					ACLMessage.INFORM);
+			informOrderPickerMessage.setProtocol("request-shelf");
+			informOrderPickerMessage.addReceiver(currentOrderPicker);
+			informOrderPickerMessage.setContent(currentOrderPickerRequest);
+			send(informOrderPickerMessage);
+		}
 
-			// TODO travel back?
-			isBusy = false;
-			currentOrderPicker = null;
-			currentOrderPickerRequest = null;
-			log("reset to init state");
+	}
+
+	private class TravelBackHome extends OneShotBehaviour {
+
+		private static final long serialVersionUID = 1L;
+
+		@Override
+		public void action() {
+
+			// INFORM THE ORDER PICKER
+			ACLMessage informRobotMessage = new ACLMessage(ACLMessage.INFORM);
+			informRobotMessage.setProtocol("request-robot");
+			informRobotMessage.addReceiver(currentRobot);
+			send(informRobotMessage);
 		}
 
 	}
@@ -156,39 +171,47 @@ public class ShelfAgent extends Agent {
 
 			if (message != null) {
 				ACLMessage response = message.createReply();
-				switch (message.getPerformative()) {
 
-				case ACLMessage.REFUSE:
-					break;
+				switch (message.getPerformative()) {
 
 				case ACLMessage.PROPOSE:
 
-					if (hasRobot) {
+					if (currentState != State.waitForRobot) {
+
+						// WE ALREADY HAVE A ROBOT
 						response.setPerformative(ACLMessage.REJECT_PROPOSAL);
+						send(response);
+
 					} else {
 
-						// WE NOW HAVE A ROBOT
-						log("found a robot");
+						// GOT A ROBOT
+						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+						send(response);
+
 						broadcastRobots.stop();
 						removeBehaviour(broadcastRobots);
-						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-						hasRobot = true;
+
+						// WAIT FOR ARRIVAL
+						currentState = State.travelToOrderPicker;
+						currentRobot = message.getSender();
+
 					}
 					break;
 
 				case ACLMessage.INFORM:
 
-					// WE ARRIVED
-					addBehaviour(new ArriveAtOrderPicker());
-					response = null;
+					if (currentState == State.travelToOrderPicker) {
+
+						// ARRIVAL AT THE ORDER PICKER
+						currentState = State.serveOrderPicker;
+						addBehaviour(new ArriveAtOrderPicker());
+
+					} else if (currentState == State.travelBackHome) {
+
+						// ARRIVAL HOME
+						currentState = State.idle;
+					}
 					break;
-
-				default:
-					response = null;
-				}
-
-				if (response != null) {
-					send(response);
 				}
 
 			} else {
@@ -214,39 +237,58 @@ public class ShelfAgent extends Agent {
 				response.setContent(message.getContent());
 
 				switch (message.getPerformative()) {
+
 				case ACLMessage.QUERY_IF:
 
 					if (hasItem(message.getContent())) {
+
+						// ANSWER WHEN THE SHELF HAS THE ITEM
 						response.setPerformative(ACLMessage.CONFIRM);
-					} else {
-						response = null;
-						// response.setPerformative(ACLMessage.DISCONFIRM);
+						send(response);
+
+						log("I have items for OrderPicker: "
+								+ message.getSender().getLocalName());
+
 					}
 					break;
 
 				case ACLMessage.PROPOSE:
 
-					if (isBusy) {
+					if (currentState != State.idle) {
+
+						// SHELF IS BUSY
 						response.setPerformative(ACLMessage.REJECT_PROPOSAL);
+						send(response);
+
 					} else {
 
-						// NOW WE SERVE THAT ORDERPICKER
+						log("serving now " + message.getSender().getLocalName());
+
+						// NOW SERVE THAT PICKER
 						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-						isBusy = true;
+						send(response);
+
+						// BROADCAST ROBOTS
+						currentState = State.waitForRobot;
 						currentOrderPickerRequest = message.getContent();
 						currentOrderPicker = message.getSender();
-						broadcastRobots = new BroadcastRobots(myAgent, 3000);
+						broadcastRobots = new BroadcastRobots(myAgent,
+								BCAST_TICKS);
 						addBehaviour(broadcastRobots);
 					}
-
 					break;
 
-				default:
-					response = null;
-				}
+				case ACLMessage.INFORM:
 
-				if (response != null) {
-					send(response);
+					if (currentState == State.serveOrderPicker) {
+						// TRAVEL BACK HOME
+						currentState = State.travelBackHome;
+						currentRobot = null;
+						currentOrderPicker = null;
+						currentOrderPickerRequest = null;
+						addBehaviour(new TravelBackHome());
+					}
+					break;
 				}
 
 			} else {

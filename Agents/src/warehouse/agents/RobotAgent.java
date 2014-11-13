@@ -21,10 +21,14 @@ public class RobotAgent extends Agent {
 	public static final String SERVICE_TYPE = "shelf-robot";
 	private static final long serialVersionUID = 1L;
 	private static Random rand = new Random();
-	private boolean isBusy;
+
+	private boolean isIdle;
+	private boolean promisedProposal;
+	private AID currentShelf;
 
 	public RobotAgent() {
-		this.isBusy = false;
+		this.isIdle = true;
+		this.promisedProposal = false;
 		this.addBehaviour(new RobotRequestProtocol());
 	}
 
@@ -58,32 +62,42 @@ public class RobotAgent extends Agent {
 		}
 	}
 
-	private class TransportShelf extends OneShotBehaviour {
+	private class TransportShelfToOrderPicker extends OneShotBehaviour {
 
 		private static final long serialVersionUID = 1L;
-
-		private AID shelfID;
-
-		protected TransportShelf(AID shelfID) {
-			this.shelfID = shelfID;
-		}
 
 		@Override
 		public void action() {
 
-			isBusy = true;
-
-			int delay = rand.nextInt(3);
-			block(delay * 1000);
+			int transportDelay = rand.nextInt(5);
+			block(transportDelay * 1000);
 
 			ACLMessage message = new ACLMessage(ACLMessage.INFORM);
-			message.addReceiver(shelfID);
+			message.addReceiver(currentShelf);
+			message.setProtocol("request-robot");
+			myAgent.send(message);
+		}
+
+	}
+
+	private class TransportShelfHome extends OneShotBehaviour {
+
+		private static final long serialVersionUID = 1L;
+
+		@Override
+		public void action() {
+
+			int transportDelay = rand.nextInt(5);
+			block(transportDelay * 1000);
+
+			ACLMessage message = new ACLMessage(ACLMessage.INFORM);
+			message.addReceiver(currentShelf);
 			message.setProtocol("request-robot");
 			myAgent.send(message);
 
-			// TODO transport the shelf back?
-
-			isBusy = false;
+			currentShelf = null;
+			isIdle = true;
+			promisedProposal = false;
 		}
 
 	}
@@ -105,24 +119,38 @@ public class RobotAgent extends Agent {
 				switch (message.getPerformative()) {
 				case ACLMessage.REQUEST:
 
-					if (isBusy) {
+					if (!isIdle || promisedProposal) {
 						response.setPerformative(ACLMessage.REFUSE);
+						send(response);
 					} else {
+
+						// IDLE
 						response.setPerformative(ACLMessage.PROPOSE);
+						send(response);
+						promisedProposal = true;
 					}
 					break;
 
 				case ACLMessage.ACCEPT_PROPOSAL:
-					isBusy = true;
-					myAgent.addBehaviour(new TransportShelf(message.getSender()));
+
+					// TRANSPORT THAT SHELF
+					isIdle = false;
+					currentShelf = message.getSender();
+					myAgent.addBehaviour(new TransportShelfToOrderPicker());
 					break;
 
-				default:
-					response = null;
-				}
+				case ACLMessage.REJECT_PROPOSAL:
+					promisedProposal = false;
+					break;
 
-				if (response != null) {
-					send(response);
+				case ACLMessage.INFORM:
+
+					// SHELF INFORMS US THAT IT WANTS HOME
+					if (!isIdle) {
+						myAgent.addBehaviour(new TransportShelfHome());
+					}
+
+					break;
 				}
 
 			} else {
