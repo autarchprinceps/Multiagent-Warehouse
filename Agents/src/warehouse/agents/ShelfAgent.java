@@ -27,7 +27,7 @@ public class ShelfAgent extends Agent {
 	private State currentState;
 	private AID currentRobot;
 	private AID currentOrderPicker;
-	private String currentOrderPickerRequest;
+	private String currentItemRequest;
 	private TickerBehaviour broadcastRobots;
 
 	// ITEMS THE SHELF CONTAINS
@@ -101,8 +101,6 @@ public class ShelfAgent extends Agent {
 		@Override
 		public void onTick() {
 
-			log("broadcast robots");
-
 			ACLMessage itemBroadcast = new ACLMessage(ACLMessage.REQUEST);
 			itemBroadcast.setProtocol("request-robot");
 
@@ -131,14 +129,12 @@ public class ShelfAgent extends Agent {
 		@Override
 		public void action() {
 
-			log("arrived at order picker");
-
 			// INFORM THE ORDER PICKER
 			ACLMessage informOrderPickerMessage = new ACLMessage(
 					ACLMessage.INFORM);
 			informOrderPickerMessage.setProtocol("request-shelf");
 			informOrderPickerMessage.addReceiver(currentOrderPicker);
-			informOrderPickerMessage.setContent(currentOrderPickerRequest);
+			informOrderPickerMessage.setContent(currentItemRequest);
 			send(informOrderPickerMessage);
 		}
 
@@ -150,8 +146,6 @@ public class ShelfAgent extends Agent {
 
 		@Override
 		public void action() {
-
-			// INFORM THE ORDER PICKER
 			ACLMessage informRobotMessage = new ACLMessage(ACLMessage.INFORM);
 			informRobotMessage.setProtocol("request-robot");
 			informRobotMessage.addReceiver(currentRobot);
@@ -185,6 +179,7 @@ public class ShelfAgent extends Agent {
 					} else {
 
 						// GOT A ROBOT
+						log("ACCEPT_PROPOSAL with " + message.getSender().getLocalName());
 						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
 						send(response);
 
@@ -203,6 +198,7 @@ public class ShelfAgent extends Agent {
 					if (currentState == State.travelToOrderPicker) {
 
 						// ARRIVAL AT THE ORDER PICKER
+						log("INFORM arrived at " + currentOrderPicker.getLocalName());
 						currentState = State.serveOrderPicker;
 						addBehaviour(new ArriveAtOrderPicker());
 
@@ -235,7 +231,7 @@ public class ShelfAgent extends Agent {
 
 				ACLMessage response = message.createReply();
 				response.setContent(message.getContent());
-
+				
 				switch (message.getPerformative()) {
 
 				case ACLMessage.QUERY_IF:
@@ -246,7 +242,7 @@ public class ShelfAgent extends Agent {
 						response.setPerformative(ACLMessage.CONFIRM);
 						send(response);
 
-						log("I have items for OrderPicker: "
+						log("CONFIRM got items for "
 								+ message.getSender().getLocalName());
 
 					}
@@ -257,12 +253,15 @@ public class ShelfAgent extends Agent {
 					if (currentState != State.idle) {
 
 						// SHELF IS BUSY
+						log("REJECT_PORPOSAL with "
+								+ message.getSender().getLocalName());
 						response.setPerformative(ACLMessage.REJECT_PROPOSAL);
 						send(response);
 
 					} else {
 
-						log("serving now " + message.getSender().getLocalName());
+						log("ACCEPT_PROPOSAL with "
+								+ message.getSender().getLocalName());
 
 						// NOW SERVE THAT PICKER
 						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
@@ -270,7 +269,7 @@ public class ShelfAgent extends Agent {
 
 						// BROADCAST ROBOTS
 						currentState = State.waitForRobot;
-						currentOrderPickerRequest = message.getContent();
+						currentItemRequest = message.getContent();
 						currentOrderPicker = message.getSender();
 						broadcastRobots = new BroadcastRobots(myAgent,
 								BCAST_TICKS);
@@ -281,11 +280,12 @@ public class ShelfAgent extends Agent {
 				case ACLMessage.INFORM:
 
 					if (currentState == State.serveOrderPicker) {
+
 						// TRAVEL BACK HOME
 						currentState = State.travelBackHome;
 						currentRobot = null;
 						currentOrderPicker = null;
-						currentOrderPickerRequest = null;
+						currentItemRequest = null;
 						addBehaviour(new TravelBackHome());
 					}
 					break;
