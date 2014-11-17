@@ -1,19 +1,21 @@
 # Warehouse
 
 ## Status
-@Bastian: bitte aktualisieren
 
 * Working:
-	* Customer -> Warehouse -> Order -> OrderPicker -> Shelfs
+	* Customer -> Warehouse -> Order -> OrderPicker -> Shelfs -> Robot
+	* see wiki/architekture for the interaction design between the agents
 * Need testing:
 	* Shelfs -> OrderPicker -> Shelf
 	* Shelf -> Robot (to and from OrderPicker)
 	* Shelf -> OrderPicker
 	* OrderPicker -> Order -> (checking) -> Warehouse -> Customer
 * Possible issues:
-	* What if nothing is free, nothing has item, ... (Is this in scope?)
+	* What if nothing is free
+	* What if some items are not available (is this in scope?)
+	* ...
 
-## Arbeitsaufteilung
+## Work-Sharing
 
 ### Patrick Robinson
 * CustomerAgentStub
@@ -27,7 +29,7 @@
 * ShelfAgent
 * RobotAgent
 
-## TODO
+## TODO-List
 
 ### Patrick Robinson
 * Test returning of order (once OrderPicker, Shelfs and Robots work)
@@ -40,9 +42,11 @@
 * Refactor Hashmaps which use Pair<String, Integer or Boolean). References to keys break. Need to search for getFirst and getSecond to find correct key again.
 
 ### Bastian Mager
-* Debug ShelfAgent & RobotAgent
-* Add more details here
-
+* Debug ShelfAgent
+* Debug RobotAgent
+* Model that a Shelf has more than one item
+* Model that the Shelfs inventory decreases (?) 
+* Link Robots with that simulation software (?)
 ## Running
 
 The project uses Java 8 update 25!
