@@ -5,6 +5,8 @@
 *.class
 Agents/APDescription.txt
 Agents/MTPs-Main-Container.txt
+MTPs-Main-Container.txt
+APDescription.txt
 
 # tmp
 *~
