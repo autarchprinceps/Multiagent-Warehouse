@@ -47,6 +47,7 @@
 * Model that a Shelf has more than one item
 * Model that the Shelfs inventory decreases (?) 
 * Link Robots with that simulation software (?)
+
 ## Running
 
 The project uses Java 8 update 25!
