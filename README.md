@@ -39,7 +39,7 @@
 ### Daniel Pyka
 * Debug OrderPicker
 * If no other agents answer (for example on item broadcasts) the whole workflow stops
-* Refactor Hashmaps which use Pair<String, Integer or Boolean). References to keys break. Need to search for getFirst and getSecond to find correct key again.
+* Refactor Hashmaps which use Pair<String, Integer or Boolean>). References to keys break. Need to search for getFirst and getSecond to find correct key again.
 
 ### Bastian Mager
 * Debug ShelfAgent
