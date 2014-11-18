@@ -242,6 +242,7 @@ public class OrderPicker extends Agent
 
 			if (shelfAnswer != null)
 			{
+				// TODO FIX: JSONObject ist kein Paar String, Int
 				Pair<String, Integer> content = Pair.convert(new JSONObject(shelfAnswer.getContent()));
 
 				switch (shelfAnswer.getPerformative())
