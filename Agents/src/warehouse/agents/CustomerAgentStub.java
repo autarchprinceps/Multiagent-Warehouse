@@ -83,7 +83,7 @@ public class CustomerAgentStub extends Agent {
 			result.append('{');
 			result.append(part);
 			result.append(':');
-			result.append(r.nextInt(10));
+			result.append(r.nextInt(10) + 1);
 			result.append("},");
 		}
 		result.deleteCharAt(result.length() - 1);
