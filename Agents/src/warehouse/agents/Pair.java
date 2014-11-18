@@ -40,6 +40,11 @@ class Pair<K, V> {
     }
     
     @Override
+    public int hashCode() {
+    	return first.hashCode() + second.hashCode();
+    }
+    
+    @Override
     public String toString() {
     	return '{' + first.toString() + ':' + second.toString() + '}';
     }
