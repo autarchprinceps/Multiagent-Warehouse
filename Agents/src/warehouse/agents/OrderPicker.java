@@ -242,27 +242,18 @@ public class OrderPicker extends Agent
 
 			if (shelfAnswer != null)
 			{
-				// TODO FIX: JSONObject ist kein Paar String, Int
 				Pair<String, Integer> content = Pair.convert(new JSONObject(shelfAnswer.getContent()));
-
 				switch (shelfAnswer.getPerformative())
 				{
 				case ACLMessage.CONFIRM:
 					System.out.println(getLocalName() + " CONFIRM received from: " + shelfAnswer.getSender().getLocalName());
-
-					for (Pair<String, Integer> key : OrderPicker.this.orderStatus.keySet())
+					if (OrderPicker.this.orderStatus.get(content) == PartStatus.BROADCASTED)
 					{
-						if (key.getFirst().equals(content.getFirst()) && (key.getSecond() == content.getSecond()))
-						{
-							if (OrderPicker.this.orderStatus.get(key) == PartStatus.BROADCASTED)
-							{
-								System.out.println(getLocalName() + "PROPOSE sending: " + OrderPicker.this.getLocalName());
-								ACLMessage propose = shelfAnswer.createReply();
-								propose.setPerformative(ACLMessage.PROPOSE);
-								propose.setContent(new JSONObject().put(getLocalName(), true).toString());
-								send(propose);
-							}
-						}
+						System.out.println(getLocalName() + " PROPOSE sending: " + OrderPicker.this.getLocalName());
+						ACLMessage propose = shelfAnswer.createReply();
+						propose.setPerformative(ACLMessage.PROPOSE);
+						propose.setContent(content.toString());
+						send(propose);
 					}
 					break;
 				case ACLMessage.ACCEPT_PROPOSAL:
@@ -277,10 +268,11 @@ public class OrderPicker extends Agent
 					break;
 				case ACLMessage.INFORM:
 					System.out.println(getLocalName() + "INFORM received from: " + shelfAnswer.getSender().getLocalName());
-
 					{
 						if (OrderPicker.this.orderStatus.get(content) == PartStatus.SHELF_PROPOSED)
 						{
+							System.out.println(getLocalName() + "INFORM send to: " + shelfAnswer.getSender().getLocalName()
+									+ "(take item)");
 							ACLMessage inform = shelfAnswer.createReply();
 							inform.setPerformative(ACLMessage.INFORM);
 							inform.setContent(content.toString());
