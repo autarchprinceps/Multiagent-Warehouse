@@ -161,7 +161,7 @@ public class OrderAgent extends Agent {
 			if(recMsg != null) {
 				JSONArray arr = new JSONArray(recMsg.getContent());
 				for(int i = 0; i < arr.length(); i++) {
-					JSONObject elem = arr.getJSONObject(i);
+					JSONObject elem = new JSONObject(arr.getString(i));
 					Pair<String, Integer> p = Pair.convert(elem);
 					if(items.containsKey(p)) {
 						if(items.get(p)) {

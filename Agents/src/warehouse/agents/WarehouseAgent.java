@@ -93,6 +93,8 @@ public class WarehouseAgent extends Agent {
 				sb.deleteCharAt(sb.length() - 1);
 				sb.append("]}");
 				response.setContent(sb.toString());
+				System.out.println("WarehouseAgent: Sending completed order to customer");
+				send(response);
 			} else {
 				block();
 			}
