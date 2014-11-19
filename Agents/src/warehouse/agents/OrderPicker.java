@@ -33,8 +33,8 @@ public class OrderPicker extends Agent
 	};
 
 	private boolean isIdle;
-	private JSONArray orderList;
-	private JSONArray order;
+	private JSONArray orderList = new JSONArray();
+	private JSONArray order = new JSONArray();
 
 	private final Map<Pair<String, Integer>, PartStatus> orderStatus = new HashMap<Pair<String, Integer>, PartStatus>();
 
@@ -271,13 +271,14 @@ public class OrderPicker extends Agent
 					{
 						if (OrderPicker.this.orderStatus.get(content) == PartStatus.SHELF_PROPOSED)
 						{
-							System.out.println(getLocalName() + "INFORM send to: " + shelfAnswer.getSender().getLocalName()
-									+ "(take item)");
+							System.out.println(getLocalName() + " INFORM send to: " + shelfAnswer.getSender().getLocalName()
+									+ " (take item)");
 							ACLMessage inform = shelfAnswer.createReply();
 							inform.setPerformative(ACLMessage.INFORM);
 							inform.setContent(content.toString());
 							send(inform);
 							OrderPicker.this.order.put(content);
+							System.out.println("orderarray: " + OrderPicker.this.order.toString());
 							OrderPicker.this.orderStatus.put(content, PartStatus.PROPERTY);
 						}
 					}
@@ -285,7 +286,6 @@ public class OrderPicker extends Agent
 					{
 						OrderPicker.this.finishOrder = new FinishOrder();
 						addBehaviour(OrderPicker.this.finishOrder);
-
 						removeBehaviour(OrderPicker.this.shelfInteraction);
 					}
 					break;
@@ -317,6 +317,8 @@ public class OrderPicker extends Agent
 			send(inform);
 
 			OrderPicker.this.orderStatus.clear();
+			OrderPicker.this.order = null;
+			OrderPicker.this.order = new JSONArray();
 
 			OrderPicker.this.isIdle = true;
 			removeBehaviour(this);

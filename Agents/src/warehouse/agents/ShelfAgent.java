@@ -17,7 +17,8 @@ import org.json.JSONObject;
 /**
  * @author Bastian Mager <bastian.mager.2010w@informatik.h-brs.de>
  */
-public class ShelfAgent extends Agent {
+public class ShelfAgent extends Agent
+{
 
 	public static final String SERVICE_NAME = "shelf";
 	private static final long serialVersionUID = 1L;
@@ -34,25 +35,28 @@ public class ShelfAgent extends Agent {
 	private String item;
 	private int quantity;
 
-	private enum State {
+	private enum State
+	{
 		idle, waitForRobot, travelToOrderPicker, serveOrderPicker, travelBackHome
 	}
 
-	public ShelfAgent() {
+	public ShelfAgent()
+	{
 		this.currentState = State.idle;
 		this.addBehaviour(new ItemRequestProtocol());
 		this.addBehaviour(new RobotRequestProtocol());
 	}
 
 	@Override
-	protected void setup() {
+	protected void setup()
+	{
 
 		// INIT FILEDS WITH ARGS
 		Object[] args = getArguments();
 		this.item = args[0].toString();
 		this.quantity = Integer.parseInt(args[1].toString());
 
-		log("setup with item " + item + ": " + quantity);
+		log("setup with item " + this.item + ": " + this.quantity);
 
 		// REGISTER SERVICE
 		DFAgentDescription agentDesc = new DFAgentDescription();
@@ -62,44 +66,54 @@ public class ShelfAgent extends Agent {
 		agentDesc.setName(getAID());
 		agentDesc.addServices(serviceDesc);
 
-		try {
+		try
+		{
 			DFService.register(this, agentDesc);
-		} catch (FIPAException e) {
+		}
+		catch (FIPAException e)
+		{
 			e.printStackTrace();
 		}
 
 	}
 
 	@Override
-	protected void takeDown() {
-		try {
+	protected void takeDown()
+	{
+		try
+		{
 			DFService.deregister(this);
-		} catch (FIPAException e) {
+		}
+		catch (FIPAException e)
+		{
 			e.printStackTrace();
 		}
 	}
 
-	protected boolean hasItem(String jsonRequest) {
+	protected boolean hasItem(String jsonRequest)
+	{
 		/*
 		 * EXAMPLE IN JSON: { ROTOR : 1 }
 		 */
-		Pair<String, Integer> requestedObject = Pair.convert(new JSONObject(
-				jsonRequest));
+		Pair<String, Integer> requestedObject = Pair.convert(new JSONObject(jsonRequest));
 		String requestedItem = requestedObject.getFirst();
 		int requestedCount = requestedObject.getSecond();
-		return item.equals(requestedItem) && requestedCount <= quantity;
+		return this.item.equals(requestedItem) && requestedCount <= this.quantity;
 	}
 
-	private class BroadcastRobots extends TickerBehaviour {
+	private class BroadcastRobots extends TickerBehaviour
+	{
 
-		public BroadcastRobots(Agent a, long period) {
+		public BroadcastRobots(Agent a, long period)
+		{
 			super(a, period);
 		}
 
 		private static final long serialVersionUID = 1L;
 
 		@Override
-		public void onTick() {
+		public void onTick()
+		{
 
 			ACLMessage itemBroadcast = new ACLMessage(ACLMessage.REQUEST);
 			itemBroadcast.setProtocol("request-robot");
@@ -108,12 +122,15 @@ public class ShelfAgent extends Agent {
 			ServiceDescription sd = new ServiceDescription();
 			sd.setType(RobotAgent.SERVICE_TYPE);
 			robotDesc.addServices(sd);
-			try {
-				for (DFAgentDescription desc : DFService.search(myAgent,
-						robotDesc)) {
+			try
+			{
+				for (DFAgentDescription desc : DFService.search(this.myAgent, robotDesc))
+				{
 					itemBroadcast.addReceiver(desc.getName());
 				}
-			} catch (FIPAException e) {
+			}
+			catch (FIPAException e)
+			{
 				e.printStackTrace();
 			}
 
@@ -122,183 +139,204 @@ public class ShelfAgent extends Agent {
 
 	}
 
-	private class ArriveAtOrderPicker extends OneShotBehaviour {
+	private class ArriveAtOrderPicker extends OneShotBehaviour
+	{
 
 		private static final long serialVersionUID = 1L;
 
 		@Override
-		public void action() {
+		public void action()
+		{
 
 			// INFORM THE ORDER PICKER
-			ACLMessage informOrderPickerMessage = new ACLMessage(
-					ACLMessage.INFORM);
-			informOrderPickerMessage.setProtocol("request-shelf");
-			informOrderPickerMessage.addReceiver(currentOrderPicker);
-			informOrderPickerMessage.setContent(currentItemRequest);
+			ACLMessage informOrderPickerMessage = new ACLMessage(ACLMessage.INFORM);
+			informOrderPickerMessage.setProtocol("request-item");
+			informOrderPickerMessage.addReceiver(ShelfAgent.this.currentOrderPicker);
+			informOrderPickerMessage.setContent(ShelfAgent.this.currentItemRequest);
 			send(informOrderPickerMessage);
 		}
 
 	}
 
-	private class TravelBackHome extends OneShotBehaviour {
+	private class TravelBackHome extends OneShotBehaviour
+	{
 
 		private static final long serialVersionUID = 1L;
 
 		@Override
-		public void action() {
+		public void action()
+		{
 			ACLMessage informRobotMessage = new ACLMessage(ACLMessage.INFORM);
 			informRobotMessage.setProtocol("request-robot");
-			informRobotMessage.addReceiver(currentRobot);
+			informRobotMessage.addReceiver(ShelfAgent.this.currentRobot);
 			send(informRobotMessage);
 		}
 
 	}
 
-	private class RobotRequestProtocol extends CyclicBehaviour {
+	private class RobotRequestProtocol extends CyclicBehaviour
+	{
 
 		private static final long serialVersionUID = 1L;
 
 		@Override
-		public void action() {
-			ACLMessage message = myAgent.receive(MessageTemplate
-					.MatchProtocol("request-robot"));
+		public void action()
+		{
+			ACLMessage message = this.myAgent.receive(MessageTemplate.MatchProtocol("request-robot"));
 
-			if (message != null) {
+			if (message != null)
+			{
 				ACLMessage response = message.createReply();
 
-				switch (message.getPerformative()) {
+				switch (message.getPerformative())
+				{
 
 				case ACLMessage.PROPOSE:
 
-					if (currentState != State.waitForRobot) {
+					if (ShelfAgent.this.currentState != State.waitForRobot)
+					{
 
 						// WE ALREADY HAVE A ROBOT
 						response.setPerformative(ACLMessage.REJECT_PROPOSAL);
 						send(response);
 
-					} else {
+					}
+					else
+					{
 
 						// GOT A ROBOT
 						log("ACCEPT_PROPOSAL with " + message.getSender().getLocalName());
 						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
 						send(response);
 
-						broadcastRobots.stop();
-						removeBehaviour(broadcastRobots);
+						ShelfAgent.this.broadcastRobots.stop();
+						removeBehaviour(ShelfAgent.this.broadcastRobots);
 
 						// WAIT FOR ARRIVAL
-						currentState = State.travelToOrderPicker;
-						currentRobot = message.getSender();
+						ShelfAgent.this.currentState = State.travelToOrderPicker;
+						ShelfAgent.this.currentRobot = message.getSender();
 
 					}
 					break;
 
 				case ACLMessage.INFORM:
 
-					if (currentState == State.travelToOrderPicker) {
+					if (ShelfAgent.this.currentState == State.travelToOrderPicker)
+					{
 
 						// ARRIVAL AT THE ORDER PICKER
-						log("INFORM arrived at " + currentOrderPicker.getLocalName());
-						currentState = State.serveOrderPicker;
+						log("INFORM arrived at " + ShelfAgent.this.currentOrderPicker.getLocalName());
+						ShelfAgent.this.currentState = State.serveOrderPicker;
 						addBehaviour(new ArriveAtOrderPicker());
 
-					} else if (currentState == State.travelBackHome) {
+					}
+					else if (ShelfAgent.this.currentState == State.travelBackHome)
+					{
 
 						// ARRIVAL HOME
-						currentState = State.idle;
+						ShelfAgent.this.currentState = State.idle;
 					}
 					break;
 				}
 
-			} else {
+			}
+			else
+			{
 				block();
 			}
 
 		}
 	}
 
-	private class ItemRequestProtocol extends CyclicBehaviour {
+	private class ItemRequestProtocol extends CyclicBehaviour
+	{
 
 		private static final long serialVersionUID = 1L;
 
 		@Override
-		public void action() {
+		public void action()
+		{
 
-			ACLMessage message = myAgent.receive(MessageTemplate
-					.MatchProtocol("request-item"));
+			ACLMessage message = this.myAgent.receive(MessageTemplate.MatchProtocol("request-item"));
 
-			if (message != null) {
+			if (message != null)
+			{
 
 				ACLMessage response = message.createReply();
 				response.setContent(message.getContent());
-				
-				switch (message.getPerformative()) {
+
+				switch (message.getPerformative())
+				{
 
 				case ACLMessage.QUERY_IF:
 
-					if (hasItem(message.getContent())) {
+					if (hasItem(message.getContent()))
+					{
 
 						// ANSWER WHEN THE SHELF HAS THE ITEM
 						response.setPerformative(ACLMessage.CONFIRM);
 						send(response);
 
-						log("CONFIRM got items for "
-								+ message.getSender().getLocalName());
+						log("CONFIRM got items for " + message.getSender().getLocalName());
 
 					}
 					break;
 
 				case ACLMessage.PROPOSE:
 
-					if (currentState != State.idle) {
+					if (ShelfAgent.this.currentState != State.idle)
+					{
 
 						// SHELF IS BUSY
-						log("REJECT_PORPOSAL with "
-								+ message.getSender().getLocalName());
+						log("REJECT_PORPOSAL with " + message.getSender().getLocalName());
 						response.setPerformative(ACLMessage.REJECT_PROPOSAL);
 						send(response);
 
-					} else {
+					}
+					else
+					{
 
-						log("ACCEPT_PROPOSAL with "
-								+ message.getSender().getLocalName());
+						log("ACCEPT_PROPOSAL with " + message.getSender().getLocalName());
 
 						// NOW SERVE THAT PICKER
 						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
 						send(response);
 
 						// BROADCAST ROBOTS
-						currentState = State.waitForRobot;
-						currentItemRequest = message.getContent();
-						currentOrderPicker = message.getSender();
-						broadcastRobots = new BroadcastRobots(myAgent,
-								BCAST_TICKS);
-						addBehaviour(broadcastRobots);
+						ShelfAgent.this.currentState = State.waitForRobot;
+						ShelfAgent.this.currentItemRequest = message.getContent();
+						ShelfAgent.this.currentOrderPicker = message.getSender();
+						ShelfAgent.this.broadcastRobots = new BroadcastRobots(this.myAgent, BCAST_TICKS);
+						addBehaviour(ShelfAgent.this.broadcastRobots);
 					}
 					break;
 
 				case ACLMessage.INFORM:
 
-					if (currentState == State.serveOrderPicker) {
+					if (ShelfAgent.this.currentState == State.serveOrderPicker)
+					{
 
 						// TRAVEL BACK HOME
-						currentState = State.travelBackHome;
-						currentRobot = null;
-						currentOrderPicker = null;
-						currentItemRequest = null;
+						ShelfAgent.this.currentState = State.travelBackHome;
+						ShelfAgent.this.currentRobot = null;
+						ShelfAgent.this.currentOrderPicker = null;
+						ShelfAgent.this.currentItemRequest = null;
 						addBehaviour(new TravelBackHome());
 					}
 					break;
 				}
 
-			} else {
+			}
+			else
+			{
 				block();
 			}
 
 		}
 	}
 
-	private void log(String log) {
+	private void log(String log)
+	{
 		System.out.println(getLocalName() + ": " + log);
 	}
 
