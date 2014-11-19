@@ -33,6 +33,7 @@ public class OrderPicker extends Agent
 	};
 
 	private boolean isIdle;
+	private AID currentOrderAgent;
 	private JSONArray orderList = new JSONArray();
 	private JSONArray order = new JSONArray();
 
@@ -149,6 +150,7 @@ public class OrderPicker extends Agent
 					{
 						System.out.println(getLocalName() + " REQUEST received, AGREE send: " + request.getSender().getLocalName());
 						OrderPicker.this.isIdle = false;
+						OrderPicker.this.currentOrderAgent = request.getSender();
 						ACLMessage agree = request.createReply();
 						agree.setPerformative(ACLMessage.AGREE);
 						agree.setLanguage("JSON");
@@ -310,7 +312,7 @@ public class OrderPicker extends Agent
 		{
 			System.out.println(getLocalName() + ": Order complete, send INFORM to OrderAgent!");
 			ACLMessage inform = new ACLMessage(ACLMessage.INFORM);
-			inform.addReceiver(new AID("OrderAgent", AID.ISLOCALNAME));
+			inform.addReceiver(OrderPicker.this.currentOrderAgent);
 			inform.setLanguage("JSON");
 			inform.setProtocol("JSON");
 			inform.setContent(OrderPicker.this.order.toString());
@@ -320,7 +322,7 @@ public class OrderPicker extends Agent
 			OrderPicker.this.order = null;
 			OrderPicker.this.order = new JSONArray();
 
-			OrderPicker.this.isIdle = true;
+			// OrderPicker.this.isIdle = true;
 			removeBehaviour(this);
 		}
 	}
