@@ -283,7 +283,6 @@ public class ShelfAgent extends Agent {
 
 						// TRAVEL BACK HOME
 						currentState = State.travelBackHome;
-						currentRobot = null;
 						currentOrderPicker = null;
 						currentItemRequest = null;
 						addBehaviour(new TravelBackHome());

@@ -94,7 +94,7 @@ public class RobotAgent extends Agent {
 			message.addReceiver(currentShelf);
 			message.setProtocol("request-robot");
 			myAgent.send(message);
-
+			
 			currentShelf = null;
 			isIdle = true;
 			promisedProposal = false;
@@ -119,16 +119,17 @@ public class RobotAgent extends Agent {
 				switch (message.getPerformative()) {
 				case ACLMessage.REQUEST:
 
-					if (!isIdle || promisedProposal) {
-						response.setPerformative(ACLMessage.REFUSE);
-						send(response);
-					} else {
+					if (isIdle && !promisedProposal) {
 
-						// IDLE
 						response.setPerformative(ACLMessage.PROPOSE);
 						send(response);
 						promisedProposal = true;
+
+					} else {
+						response.setPerformative(ACLMessage.REFUSE);
+						send(response);
 					}
+
 					break;
 
 				case ACLMessage.ACCEPT_PROPOSAL:
