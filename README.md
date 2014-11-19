@@ -3,13 +3,8 @@
 ## Status
 
 * Working:
-	* Customer -> Warehouse -> Order -> OrderPicker -> Shelfs -> Robot
+	* Order is successfully completed in standard case
 	* see wiki/architekture for the interaction design between the agents
-* Need testing:
-	* Shelfs -> OrderPicker -> Shelf
-	* Shelf -> Robot (to and from OrderPicker)
-	* Shelf -> OrderPicker
-	* OrderPicker -> Order -> (checking) -> Warehouse -> Customer
 * Possible issues:
 	* What if nothing is free
 	* What if some items are not available (is this in scope?)
@@ -32,18 +27,14 @@
 ## TODO-List
 
 ### Patrick Robinson
-* Test returning of order (once OrderPicker, Shelfs and Robots work)
 * Adapt to standardised order request format
 * What if QUERY_IF never returns a CONFIRM?
 
 ### Daniel Pyka
-* Debug OrderPicker
 * If no other agents answer (for example on item broadcasts) the whole workflow stops
 * Refactor Hashmaps which use Pair<String, Integer or Boolean>). References to keys break. Need to search for getFirst and getSecond to find correct key again.
 
 ### Bastian Mager
-* Debug ShelfAgent
-* Debug RobotAgent
 * Model that a Shelf has more than one item
 * Model that the Shelfs inventory decreases (?) 
 * Link Robots with that simulation software (?)
