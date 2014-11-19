@@ -79,7 +79,7 @@ public class WarehouseAgent extends Agent {
 		public void action() {
 			ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.INFORM));
 			if(recMsg != null) {
-				ACLMessage response = new ACLMessage(ACLMessage.CONFIRM);
+				ACLMessage response = new ACLMessage(ACLMessage.INFORM);
 				Order ordr = unfinishedOrders.get(recMsg.getSender());
 				for(AID rec : ordr.requestingAgents) {
 					response.addReceiver(rec);
@@ -93,7 +93,7 @@ public class WarehouseAgent extends Agent {
 				sb.deleteCharAt(sb.length() - 1);
 				sb.append("]}");
 				response.setContent(sb.toString());
-				System.out.println("WarehouseAgent: Sending completed order to customer");
+				System.out.println("WarehouseAgent: Sending completed order to customer: " + ordr.id);
 				send(response);
 			} else {
 				block();
