@@ -59,8 +59,9 @@ public class OrderAgent extends Agent {
 
 		@Override
 		public void action() {
-			// TODO what if no confirm is received, because no OrderPicker is free?
-			ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.CONFIRM));
+			// TODO what if no confirm is received, because no OrderPicker is free? - blockingReceive!
+			// ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.CONFIRM));
+			ACLMessage recMsg = blockingReceive(MessageTemplate.MatchPerformative(ACLMessage.CONFIRM), 200);
 			if(recMsg != null) {
 				ACLMessage response = new ACLMessage(ACLMessage.REQUEST);
 				response.setLanguage("JSON");
@@ -81,7 +82,11 @@ public class OrderAgent extends Agent {
 				pick = null;
 				System.out.println("OrderAgent CONFIRM received, REQUEST send: " + OrderAgent.this.getLocalName());
 			} else {
-				block();
+				// block();
+				query = new OrderPickerQuerier();
+				addBehaviour(query);
+				removeBehaviour(pick);
+				pick = null;
 			}
 		}
 		
