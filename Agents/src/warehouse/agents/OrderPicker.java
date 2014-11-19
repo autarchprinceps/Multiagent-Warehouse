@@ -322,7 +322,7 @@ public class OrderPicker extends Agent
 			OrderPicker.this.order = null;
 			OrderPicker.this.order = new JSONArray();
 
-			// OrderPicker.this.isIdle = true;
+			OrderPicker.this.isIdle = true;
 			removeBehaviour(this);
 		}
 	}
