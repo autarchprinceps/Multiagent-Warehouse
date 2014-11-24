@@ -5,6 +5,7 @@ import jade.core.Agent;
 import jade.core.behaviours.Behaviour;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
+import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -43,6 +44,7 @@ public class OrderPicker extends Agent
 	private Behaviour orderReceiver;
 	private Behaviour shelfInteraction;
 	private Behaviour finishOrder;
+	private Behaviour abortOrder;
 
 	@Override
 	protected void setup()
@@ -170,6 +172,9 @@ public class OrderPicker extends Agent
 							Behaviour itemBroadcast = new ItemBroadcaster(item);
 							addBehaviour(itemBroadcast);
 						}
+
+						OrderPicker.this.abortOrder = new AbortOrder(this.myAgent);
+						addBehaviour(OrderPicker.this.abortOrder);
 					}
 				}
 				else
@@ -269,7 +274,7 @@ public class OrderPicker extends Agent
 					addBehaviour(itemBroadcast);
 					break;
 				case ACLMessage.INFORM:
-					System.out.println(getLocalName() + "INFORM received from: " + shelfAnswer.getSender().getLocalName());
+					System.out.println(getLocalName() + " INFORM received from: " + shelfAnswer.getSender().getLocalName());
 					{
 						if (OrderPicker.this.orderStatus.get(content) == PartStatus.SHELF_PROPOSED)
 						{
@@ -280,12 +285,13 @@ public class OrderPicker extends Agent
 							inform.setContent(content.toString());
 							send(inform);
 							OrderPicker.this.order.put(content);
-							System.out.println("orderarray: " + OrderPicker.this.order.toString());
 							OrderPicker.this.orderStatus.put(content, PartStatus.PROPERTY);
 						}
 					}
 					if (checkOrderCompletion())
 					{
+						removeBehaviour(OrderPicker.this.abortOrder);
+
 						OrderPicker.this.finishOrder = new FinishOrder();
 						addBehaviour(OrderPicker.this.finishOrder);
 						removeBehaviour(OrderPicker.this.shelfInteraction);
@@ -310,7 +316,8 @@ public class OrderPicker extends Agent
 		@Override
 		public void action()
 		{
-			System.out.println(getLocalName() + ": Order complete, send INFORM to OrderAgent!");
+			System.out.println(getLocalName() + ": Order complete, send INFORM to "
+					+ OrderPicker.this.currentOrderAgent.getLocalName() + "!");
 			ACLMessage inform = new ACLMessage(ACLMessage.INFORM);
 			inform.addReceiver(OrderPicker.this.currentOrderAgent);
 			inform.setLanguage("JSON");
@@ -324,6 +331,56 @@ public class OrderPicker extends Agent
 
 			OrderPicker.this.isIdle = true;
 			removeBehaviour(this);
+		}
+	}
+
+	private class AbortOrder extends TickerBehaviour
+	{
+		private int i = 1;
+
+		public AbortOrder(Agent a)
+		{
+			// check every 1s if order is complete
+			super(a, 1000);
+		}
+
+		private static final long serialVersionUID = 1L;
+
+		@Override
+		public void onTick()
+		{
+			if (checkOrderCompletion())
+			{
+				removeBehaviour(this);
+			}
+			else
+			{
+				if (this.i == 20)
+				{
+					System.out.println(getLocalName()
+							+ ": Could not complete order within 20s, send FAILURE and partial complete order to "
+							+ OrderPicker.this.currentOrderAgent.getLocalName() + "!");
+
+					ACLMessage inform = new ACLMessage(ACLMessage.FAILURE);
+					inform.addReceiver(OrderPicker.this.currentOrderAgent);
+					inform.setLanguage("JSON");
+					inform.setProtocol("JSON");
+					inform.setContent(OrderPicker.this.order.toString());
+					send(inform);
+
+					OrderPicker.this.orderStatus.clear();
+					OrderPicker.this.order = null;
+					OrderPicker.this.order = new JSONArray();
+
+					OrderPicker.this.isIdle = true;
+					removeBehaviour(this);
+				}
+				else
+				{
+					this.i++;
+				}
+			}
+
 		}
 	}
 }
