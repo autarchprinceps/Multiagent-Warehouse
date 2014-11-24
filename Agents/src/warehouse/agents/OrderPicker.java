@@ -110,6 +110,31 @@ public class OrderPicker extends Agent
 		return tmp;
 	}
 
+	private void rebroadcast()
+	{
+		for (Pair<String, Integer> key : this.orderStatus.keySet())
+		{
+			Behaviour itemBroadcast = null;
+			switch (this.orderStatus.get(key))
+			{
+			case BROADCASTED:
+				itemBroadcast = new ItemBroadcaster(key);
+				addBehaviour(itemBroadcast);
+				break;
+			case SHELF_PROPOSED:
+				itemBroadcast = new ItemBroadcaster(key);
+				addBehaviour(itemBroadcast);
+				this.orderStatus.put(key, PartStatus.BROADCASTED);
+				break;
+			case PROPERTY:
+				// nothing
+				break;
+			default:
+				throw new RuntimeException();
+			}
+		}
+	}
+
 	private class IdleBehaviour extends CyclicBehaviour
 	{
 		private static final long serialVersionUID = 1L;
@@ -150,7 +175,8 @@ public class OrderPicker extends Agent
 				{
 					if (request.getLanguage().equals("JSON"))
 					{
-						System.out.println(getLocalName() + " REQUEST received, AGREE send: " + request.getSender().getLocalName());
+						System.out.println(getLocalName() + ": REQUEST received, AGREE send to: "
+								+ request.getSender().getLocalName());
 						OrderPicker.this.isIdle = false;
 						OrderPicker.this.currentOrderAgent = request.getSender();
 						ACLMessage agree = request.createReply();
@@ -160,7 +186,7 @@ public class OrderPicker extends Agent
 						agree.setContent(new JSONObject().put(getLocalName(), true).toString());
 						send(agree);
 
-						System.out.println(getLocalName() + " REQUEST items: " + request.getContent());
+						System.out.println(getLocalName() + ": REQUEST items: " + request.getContent());
 						OrderPicker.this.orderList = new JSONArray(request.getContent());
 
 						OrderPicker.this.shelfInteraction = new ShelfInteraction();
@@ -179,7 +205,7 @@ public class OrderPicker extends Agent
 				}
 				else
 				{ // isIdle == false
-					System.out.println(getLocalName() + " REQUEST received, CANCEL send: " + getLocalName());
+					System.out.println(getLocalName() + ": REQUEST received, CANCEL send to: " + getLocalName());
 					ACLMessage cancel = request.createReply();
 					cancel.setPerformative(ACLMessage.CANCEL);
 					cancel.setLanguage("JSON");
@@ -230,7 +256,7 @@ public class OrderPicker extends Agent
 			}
 
 			OrderPicker.this.orderStatus.put(this.item, PartStatus.BROADCASTED);
-			System.out.println(getLocalName() + " broadcast: " + this.item.toString());
+			System.out.println(getLocalName() + ": broadcast: " + this.item.toString());
 
 			itemBroadcast.setContent(this.item.toString());
 			send(itemBroadcast);
@@ -253,10 +279,10 @@ public class OrderPicker extends Agent
 				switch (shelfAnswer.getPerformative())
 				{
 				case ACLMessage.CONFIRM:
-					System.out.println(getLocalName() + " CONFIRM received from: " + shelfAnswer.getSender().getLocalName());
+					System.out.println(getLocalName() + ": CONFIRM received from: " + shelfAnswer.getSender().getLocalName());
 					if (OrderPicker.this.orderStatus.get(content) == PartStatus.BROADCASTED)
 					{
-						System.out.println(getLocalName() + " PROPOSE sending: " + OrderPicker.this.getLocalName());
+						System.out.println(getLocalName() + ": PROPOSE send to : " + shelfAnswer.getSender().getLocalName());
 						ACLMessage propose = shelfAnswer.createReply();
 						propose.setPerformative(ACLMessage.PROPOSE);
 						propose.setContent(content.toString());
@@ -264,21 +290,22 @@ public class OrderPicker extends Agent
 					}
 					break;
 				case ACLMessage.ACCEPT_PROPOSAL:
-					System.out.println("OrderPicker ACCEPT_PROPOSAL received from: " + shelfAnswer.getSender().getLocalName());
+					System.out.println(getLocalName() + ": ACCEPT_PROPOSAL received from: "
+							+ shelfAnswer.getSender().getLocalName());
 					OrderPicker.this.orderStatus.put(content, PartStatus.SHELF_PROPOSED);
 					break;
 				case ACLMessage.REJECT_PROPOSAL:
-					System.out.println(getLocalName() + "REJECT_PROPOSAL received from: "
+					System.out.println(getLocalName() + ": REJECT_PROPOSAL received from: "
 							+ shelfAnswer.getSender().getLocalName());
 					Behaviour itemBroadcast = new ItemBroadcaster(content);
 					addBehaviour(itemBroadcast);
 					break;
 				case ACLMessage.INFORM:
-					System.out.println(getLocalName() + " INFORM received from: " + shelfAnswer.getSender().getLocalName());
+					System.out.println(getLocalName() + ": INFORM received from: " + shelfAnswer.getSender().getLocalName());
 					{
 						if (OrderPicker.this.orderStatus.get(content) == PartStatus.SHELF_PROPOSED)
 						{
-							System.out.println(getLocalName() + " INFORM send to: " + shelfAnswer.getSender().getLocalName()
+							System.out.println(getLocalName() + ": INFORM send to: " + shelfAnswer.getSender().getLocalName()
 									+ " (take item)");
 							ACLMessage inform = shelfAnswer.createReply();
 							inform.setPerformative(ACLMessage.INFORM);
@@ -340,8 +367,8 @@ public class OrderPicker extends Agent
 
 		public AbortOrder(Agent a)
 		{
-			// check every 1s if order is complete
-			super(a, 1000);
+			// check every 3s if order is complete
+			super(a, 3000);
 		}
 
 		private static final long serialVersionUID = 1L;
@@ -355,7 +382,7 @@ public class OrderPicker extends Agent
 			}
 			else
 			{
-				if (this.i == 20)
+				if (this.i == 5)
 				{
 					System.out.println(getLocalName()
 							+ ": Could not complete order within 20s, send FAILURE and partial complete order to "
@@ -377,6 +404,7 @@ public class OrderPicker extends Agent
 				}
 				else
 				{
+					rebroadcast();
 					this.i++;
 				}
 			}
