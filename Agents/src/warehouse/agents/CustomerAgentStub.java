@@ -69,7 +69,7 @@ public class CustomerAgentStub extends Agent {
 
 			@Override
 			public void action() {				
-				ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.INFORM));
+				ACLMessage recMsg = receive(MessageTemplate.or(MessageTemplate.MatchPerformative(ACLMessage.FAILURE), MessageTemplate.MatchPerformative(ACLMessage.INFORM)));
 				if(recMsg != null) {
 					System.out.println("Order finished: " + recMsg.getContent());
 					System.out.println();

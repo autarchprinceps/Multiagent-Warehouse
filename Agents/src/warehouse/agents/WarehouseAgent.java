@@ -72,6 +72,29 @@ public class WarehouseAgent extends Agent {
 		}
 	}
 	
+	private class FailedOrderReceiver extends CyclicBehaviour {
+		private static final long serialVersionUID = -5088684246352984189L;
+
+		@Override
+		public void action() {
+			ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.FAILURE));
+			if(recMsg != null) {
+				ACLMessage response = new ACLMessage(ACLMessage.FAILURE);
+				Order ordr = unfinishedOrders.get(recMsg.getSender());
+				for(AID rec : ordr.requestingAgents) {
+					response.addReceiver(rec);
+				}
+				response.setLanguage("English");
+				response.setContent("Order " + ordr.id + " failed");
+				System.out.println("WarehouseAgent: Failed order: " + ordr.id);
+				send(response);
+			} else {
+				block();
+			}			
+		}
+		
+	}
+	
 	private class FinishedOrderReceiver extends CyclicBehaviour {
 		private static final long serialVersionUID = -8359424326846087735L;
 
@@ -125,6 +148,7 @@ public class WarehouseAgent extends Agent {
 		
 		this.addBehaviour(new OrderRequestReceiver());
 		this.addBehaviour(new FinishedOrderReceiver());
+		this.addBehaviour(new FailedOrderReceiver());
 	}
 	
 	protected void takeDown() {

@@ -93,6 +93,8 @@ public class OrderAgent extends Agent {
 	}
 	
 	private class AckRecv extends CyclicBehaviour {
+		private static final long serialVersionUID = 6397089123275942503L;
+
 		@Override
 		public void action() {
 			ACLMessage agree = receive(MessageTemplate.MatchPerformative(ACLMessage.AGREE));
@@ -100,6 +102,8 @@ public class OrderAgent extends Agent {
 			if(agree != null) {
 				finish = new FinishChecker();
 				addBehaviour(finish);
+				fail = new FailChecker();
+				addBehaviour(fail);
 				removeBehaviour(ack);
 				ack = null;
 				System.out.println("OrderAgent AGREE received, REQUEST processing: " + OrderAgent.this.getLocalName());
@@ -113,6 +117,47 @@ public class OrderAgent extends Agent {
 				} else {
 					block();
 				}
+			}
+		}
+	}
+	
+	private class FailChecker extends CyclicBehaviour {
+		private static final long serialVersionUID = -1976604641228877495L;
+
+		@Override
+		public void action() {
+			ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.FAILURE));
+			if(recMsg != null) {
+				ACLMessage response = new ACLMessage(ACLMessage.FAILURE);
+				DFAgentDescription whDesc = new DFAgentDescription();
+				ServiceDescription sd = new ServiceDescription();
+				sd.setName("WarehouseAgent");
+				whDesc.addServices(sd);
+				try {
+					DFAgentDescription[] desc = DFService.search(OrderAgent.this, whDesc);
+					if(desc.length == 1) {
+						response.addReceiver(desc[0].getName());
+					} else {
+						if(desc.length > 1) {
+							System.err.println("Multiple WarehouseAgents found");
+						} else {
+							System.err.println("No WarehouseAgent found");
+						}
+					}
+				} catch(FIPAException ex) {
+					ex.printStackTrace();
+				}
+				send(response);
+				
+				System.err.println(OrderAgent.this.getAID().getLocalName() + " failed");
+				
+				removeBehaviour(finish);
+				removeBehaviour(fail);
+				finish = null;
+				fail = null;
+				done = true;
+			} else {
+				block();
 			}
 		}
 		
@@ -156,8 +201,10 @@ public class OrderAgent extends Agent {
 			}
 			send(msg);
 			removeBehaviour(finish);
+			removeBehaviour(fail);
 			finish = null;
-			done = true; // TODO does this work?
+			fail = null;
+			done = true;
 		}
 		
 		@Override
@@ -200,6 +247,7 @@ public class OrderAgent extends Agent {
 	private Behaviour pick;
 	private Behaviour ack;
 	private Behaviour finish;
+	private Behaviour fail;
 	
 	private boolean done;
 	
