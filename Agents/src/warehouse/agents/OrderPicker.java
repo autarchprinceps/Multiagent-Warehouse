@@ -30,7 +30,7 @@ public class OrderPicker extends Agent
 
 	private static enum PartStatus
 	{
-		BROADCASTED, SHELF_PROPOSED, PROPERTY
+		BROADCASTED, SHELF_PROPOSED, SHELF_ACCEPTED, PROPERTY
 	};
 
 	private boolean isIdle;
@@ -39,6 +39,7 @@ public class OrderPicker extends Agent
 	private JSONArray order = new JSONArray();
 
 	private final Map<Pair<String, Integer>, PartStatus> orderStatus = new HashMap<Pair<String, Integer>, PartStatus>();
+	private final Map<Pair<String, Integer>, String> shelfInfo = new HashMap<Pair<String, Integer>, String>();
 
 	private Behaviour idle;
 	private Behaviour orderReceiver;
@@ -100,11 +101,14 @@ public class OrderPicker extends Agent
 			case SHELF_PROPOSED:
 				tmp = tmp && false;
 				break;
+			case SHELF_ACCEPTED:
+				tmp = tmp && false;
+				break;
 			case PROPERTY:
 				tmp = tmp && true;
 				break;
 			default:
-				throw new RuntimeException();
+				throw new RuntimeException("Invalid value in orderStatus HashMap!");
 			}
 		}
 		return tmp;
@@ -114,21 +118,23 @@ public class OrderPicker extends Agent
 	{
 		for (Pair<String, Integer> key : this.orderStatus.keySet())
 		{
-			Behaviour itemBroadcast = null;
 			switch (this.orderStatus.get(key))
 			{
 			case BROADCASTED:
-				itemBroadcast = new ItemBroadcaster(key);
+				Behaviour itemBroadcast = new ItemBroadcaster(key);
 				addBehaviour(itemBroadcast);
 				break;
 			case SHELF_PROPOSED:
+				// nothing
+				break;
+			case SHELF_ACCEPTED:
 				// nothing
 				break;
 			case PROPERTY:
 				// nothing
 				break;
 			default:
-				throw new RuntimeException();
+				throw new RuntimeException("Invalid value in orderStatus HashMap!");
 			}
 		}
 	}
@@ -281,24 +287,38 @@ public class OrderPicker extends Agent
 				switch (shelfAnswer.getPerformative())
 				{
 				case ACLMessage.CONFIRM:
+					// first shelf which answers to the broadcast will get the propose
 					if (OrderPicker.this.orderStatus.get(content) == PartStatus.BROADCASTED)
 					{
 						System.out.println(getLocalName() + ": PROPOSE send to : " + shelfAnswer.getSender().getLocalName());
 						ACLMessage propose = shelfAnswer.createReply();
 						propose.setPerformative(ACLMessage.PROPOSE);
 						propose.setContent(content.toString());
+						OrderPicker.this.orderStatus.put(content, PartStatus.SHELF_PROPOSED);
 						send(propose);
 					}
 					break;
 				case ACLMessage.ACCEPT_PROPOSAL:
-					OrderPicker.this.orderStatus.put(content, PartStatus.SHELF_PROPOSED);
+					// flag item to not being rebroadcasted again
+					// store information which shelf brings the item to check later
+					if (OrderPicker.this.orderStatus.get(content) == PartStatus.SHELF_PROPOSED)
+					{
+						OrderPicker.this.orderStatus.put(content, PartStatus.SHELF_ACCEPTED);
+						OrderPicker.this.shelfInfo.put(content, shelfAnswer.getSender().getLocalName());
+					}
 					break;
 				case ACLMessage.REJECT_PROPOSAL:
+					// only effective if there are some more shelfs which contain the
+					// specific item
+					// and the system does not wait for robots too long
 					Behaviour itemBroadcast = new ItemBroadcaster(content);
 					addBehaviour(itemBroadcast);
 					break;
 				case ACLMessage.INFORM:
-					if (OrderPicker.this.orderStatus.get(content) == PartStatus.SHELF_PROPOSED)
+					// orderpicker checks if the item was proposed by some shelf
+					// check if the shelf is the correct one (the same as proposed)
+					if (OrderPicker.this.orderStatus.get(content) == PartStatus.SHELF_ACCEPTED
+							&& OrderPicker.this.shelfInfo.get(content).equals(shelfAnswer.getSender().getLocalName()))
 					{
 						System.out.println(getLocalName() + ": INFORM send to: " + shelfAnswer.getSender().getLocalName()
 								+ " (take item)");
@@ -311,11 +331,8 @@ public class OrderPicker extends Agent
 
 						if (checkOrderCompletion())
 						{
-							removeBehaviour(OrderPicker.this.abortOrder);
-
 							OrderPicker.this.finishOrder = new FinishOrder();
 							addBehaviour(OrderPicker.this.finishOrder);
-							removeBehaviour(OrderPicker.this.shelfInteraction);
 						}
 					}
 					break;
@@ -338,8 +355,12 @@ public class OrderPicker extends Agent
 		@Override
 		public void action()
 		{
+			removeBehaviour(OrderPicker.this.abortOrder);
+			removeBehaviour(OrderPicker.this.shelfInteraction);
+
 			System.out.println(getLocalName() + ": Order complete, send INFORM to "
 					+ OrderPicker.this.currentOrderAgent.getLocalName() + "!");
+
 			ACLMessage inform = new ACLMessage(ACLMessage.INFORM);
 			inform.addReceiver(OrderPicker.this.currentOrderAgent);
 			inform.setLanguage("JSON");
@@ -348,22 +369,23 @@ public class OrderPicker extends Agent
 			send(inform);
 
 			OrderPicker.this.orderStatus.clear();
+			OrderPicker.this.shelfInfo.clear();
 			OrderPicker.this.order = null;
 			OrderPicker.this.order = new JSONArray();
 
 			OrderPicker.this.isIdle = true;
+
 			removeBehaviour(this);
 		}
 	}
 
 	private class AbortOrder extends TickerBehaviour
 	{
-		private int i = 1;
+		private int i = 0;
 
 		public AbortOrder(Agent a)
 		{
-			// check every 5s if order is complete, 2 times
-			// -> order is aborted after 15s
+			// check every 5s
 			super(a, 5000);
 		}
 
@@ -378,10 +400,12 @@ public class OrderPicker extends Agent
 			}
 			else
 			{
-				if (this.i == 3)
+				if (this.i == OrderPicker.this.orderList.length())
 				{
+					removeBehaviour(OrderPicker.this.shelfInteraction);
+
 					System.out.println(getLocalName()
-							+ ": Could not complete order within 15s, send FAILURE and partial complete order to "
+							+ ": Could not complete in time window, send FAILURE and partial complete order to "
 							+ OrderPicker.this.currentOrderAgent.getLocalName() + "!");
 
 					ACLMessage inform = new ACLMessage(ACLMessage.FAILURE);
@@ -392,10 +416,12 @@ public class OrderPicker extends Agent
 					send(inform);
 
 					OrderPicker.this.orderStatus.clear();
+					OrderPicker.this.shelfInfo.clear();
 					OrderPicker.this.order = null;
 					OrderPicker.this.order = new JSONArray();
 
 					OrderPicker.this.isIdle = true;
+
 					removeBehaviour(this);
 				}
 				else
