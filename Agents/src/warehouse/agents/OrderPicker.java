@@ -122,9 +122,7 @@ public class OrderPicker extends Agent
 				addBehaviour(itemBroadcast);
 				break;
 			case SHELF_PROPOSED:
-				itemBroadcast = new ItemBroadcaster(key);
-				addBehaviour(itemBroadcast);
-				this.orderStatus.put(key, PartStatus.BROADCASTED);
+				// nothing
 				break;
 			case PROPERTY:
 				// nothing
@@ -276,10 +274,13 @@ public class OrderPicker extends Agent
 			if (shelfAnswer != null)
 			{
 				Pair<String, Integer> content = Pair.convert(new JSONObject(shelfAnswer.getContent()));
+
+				System.out.println(getLocalName() + " got msg from " + shelfAnswer.getSender().getLocalName() + " "
+						+ ACLMessage.getPerformative(shelfAnswer.getPerformative()) + " content: " + content);
+
 				switch (shelfAnswer.getPerformative())
 				{
 				case ACLMessage.CONFIRM:
-					System.out.println(getLocalName() + ": CONFIRM received from: " + shelfAnswer.getSender().getLocalName());
 					if (OrderPicker.this.orderStatus.get(content) == PartStatus.BROADCASTED)
 					{
 						System.out.println(getLocalName() + ": PROPOSE send to : " + shelfAnswer.getSender().getLocalName());
@@ -290,41 +291,32 @@ public class OrderPicker extends Agent
 					}
 					break;
 				case ACLMessage.ACCEPT_PROPOSAL:
-					System.out.println(getLocalName() + ": ACCEPT_PROPOSAL received from: "
-							+ shelfAnswer.getSender().getLocalName() + "||" + content);
 					OrderPicker.this.orderStatus.put(content, PartStatus.SHELF_PROPOSED);
 					break;
 				case ACLMessage.REJECT_PROPOSAL:
-					System.out.println(getLocalName() + ": REJECT_PROPOSAL received from: "
-							+ shelfAnswer.getSender().getLocalName() + "||" + content);
 					Behaviour itemBroadcast = new ItemBroadcaster(content);
 					addBehaviour(itemBroadcast);
 					break;
 				case ACLMessage.INFORM:
-					System.out.println(getLocalName() + ": INFORM received from: " + shelfAnswer.getSender().getLocalName());
+					if (OrderPicker.this.orderStatus.get(content) == PartStatus.SHELF_PROPOSED)
 					{
-						System.out
-								.println("received content: " + content + " status: " + OrderPicker.this.orderStatus.get(content));
+						System.out.println(getLocalName() + ": INFORM send to: " + shelfAnswer.getSender().getLocalName()
+								+ " (take item)");
+						ACLMessage inform = shelfAnswer.createReply();
+						inform.setPerformative(ACLMessage.INFORM);
+						inform.setContent(content.toString());
+						send(inform);
+						OrderPicker.this.order.put(content);
+						OrderPicker.this.orderStatus.put(content, PartStatus.PROPERTY);
 
-						if (OrderPicker.this.orderStatus.get(content) == PartStatus.SHELF_PROPOSED)
+						if (checkOrderCompletion())
 						{
-							System.out.println(getLocalName() + ": INFORM send to: " + shelfAnswer.getSender().getLocalName()
-									+ " (take item)");
-							ACLMessage inform = shelfAnswer.createReply();
-							inform.setPerformative(ACLMessage.INFORM);
-							inform.setContent(content.toString());
-							send(inform);
-							OrderPicker.this.order.put(content);
-							OrderPicker.this.orderStatus.put(content, PartStatus.PROPERTY);
-						}
-					}
-					if (checkOrderCompletion())
-					{
-						removeBehaviour(OrderPicker.this.abortOrder);
+							removeBehaviour(OrderPicker.this.abortOrder);
 
-						OrderPicker.this.finishOrder = new FinishOrder();
-						addBehaviour(OrderPicker.this.finishOrder);
-						removeBehaviour(OrderPicker.this.shelfInteraction);
+							OrderPicker.this.finishOrder = new FinishOrder();
+							addBehaviour(OrderPicker.this.finishOrder);
+							removeBehaviour(OrderPicker.this.shelfInteraction);
+						}
 					}
 					break;
 				default:
@@ -370,8 +362,9 @@ public class OrderPicker extends Agent
 
 		public AbortOrder(Agent a)
 		{
-			// check every 3s if order is complete
-			super(a, 3000);
+			// check every 5s if order is complete, 2 times
+			// -> order is aborted after 15s
+			super(a, 5000);
 		}
 
 		private static final long serialVersionUID = 1L;
@@ -385,10 +378,10 @@ public class OrderPicker extends Agent
 			}
 			else
 			{
-				if (this.i == 5)
+				if (this.i == 3)
 				{
 					System.out.println(getLocalName()
-							+ ": Could not complete order within 20s, send FAILURE and partial complete order to "
+							+ ": Could not complete order within 15s, send FAILURE and partial complete order to "
 							+ OrderPicker.this.currentOrderAgent.getLocalName() + "!");
 
 					ACLMessage inform = new ACLMessage(ACLMessage.FAILURE);
