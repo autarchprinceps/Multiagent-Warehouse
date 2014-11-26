@@ -5,6 +5,7 @@ import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.TickerBehaviour;
+import jade.core.behaviours.WakerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
@@ -24,6 +25,7 @@ public class ShelfAgent extends Agent {
 
 	public static final String SERVICE_NAME = "shelf";
 	private static final int BCAST_FREQ = 3000;
+	private static final int WAIT_LIMIT = 5000;
 	private static final long serialVersionUID = 1L;
 
 	// FIELDS FOR CURRENT SHELF STATE
@@ -33,6 +35,7 @@ public class ShelfAgent extends Agent {
 	private String currentItemRequest;
 
 	private TickerBehaviour broadcastRobots;
+	private PickupWait currentPickupWaitBehaviour;
 
 	// INVENTORY
 	private Map<String, Integer> inventory = new HashMap<String, Integer>();
@@ -52,7 +55,7 @@ public class ShelfAgent extends Agent {
 
 		// INIT FILEDS WITH ARGS
 		Object[] args = getArguments();
-		String inventoryLogString = "";
+
 		for (int argIndex = 0; argIndex < args.length; argIndex += 2) {
 
 			String newItem = args[argIndex].toString();
@@ -60,10 +63,9 @@ public class ShelfAgent extends Agent {
 					.toString());
 
 			inventory.put(newItem, newQuantity);
-			inventoryLogString += newItem += ":" + newQuantity + " ";
 		}
 
-		log("setup with items " + "{ " + inventoryLogString + "}");
+		log("setup with items " + getInventoryString());
 
 		// REGISTER SERVICE
 		DFAgentDescription agentDesc = new DFAgentDescription();
@@ -79,6 +81,15 @@ public class ShelfAgent extends Agent {
 			e.printStackTrace();
 		}
 
+	}
+
+	private String getInventoryString() {
+		String inventoryString = "{ ";
+		for (String item : inventory.keySet()) {
+			inventoryString += item += ":" + inventory.get(item) + " ";
+		}
+		inventoryString += "}";
+		return inventoryString;
 	}
 
 	@Override
@@ -164,6 +175,27 @@ public class ShelfAgent extends Agent {
 			informOrderPickerMessage.addReceiver(currentOrderPicker);
 			informOrderPickerMessage.setContent(currentItemRequest);
 			send(informOrderPickerMessage);
+
+			currentPickupWaitBehaviour = new PickupWait(myAgent, WAIT_LIMIT);
+			myAgent.addBehaviour(currentPickupWaitBehaviour);
+		}
+
+	}
+
+	private class PickupWait extends WakerBehaviour {
+
+		private static final long serialVersionUID = 1L;
+
+		public PickupWait(Agent a, long timeout) {
+			super(a, timeout);
+		}
+
+		@Override
+		protected void handleElapsedTimeout() {
+			currentState = State.travelBackHome;
+			log("ABORT: " + currentOrderPicker.getLocalName()
+					+ " is not interested anymore...");
+			myAgent.addBehaviour(new TravelBackHome());
 		}
 
 	}
@@ -235,6 +267,7 @@ public class ShelfAgent extends Agent {
 					} else if (currentState == State.travelBackHome) {
 
 						// ARRIVAL HOME
+						currentPickupWaitBehaviour.stop();
 						currentState = State.idle;
 					}
 					break;
@@ -318,6 +351,7 @@ public class ShelfAgent extends Agent {
 						} else {
 							// decrease inventory
 							decreaseInventory(message.getContent());
+							log("inventory now: " + getInventoryString());
 						}
 
 						// TRAVEL BACK HOME

@@ -19,18 +19,20 @@ import java.util.Random;
 public class CustomerAgentStub extends Agent {
 	private static final long serialVersionUID = 1018982190165117345L;
 	private Random r = new Random();
-	private String[] components = new String[]{ "ROTOR", "CIRCUIT", "SCREW", "BATTERY" };
-	
+	private String[] components = new String[] { "ROTOR", "CIRCUIT", "SCREW",
+			"BATTERY", "STABILISER", "TUNER", "CHARGER", "ENGINE", "CASE",
+			"CAMERA", "SPOTLIGHT" };
+
 	protected void setup() {
 		DFAgentDescription dfd = new DFAgentDescription();
 		dfd.setName(getAID());
 		try {
 			DFService.register(this, dfd);
-		} catch(FIPAException ex) {
+		} catch (FIPAException ex) {
 			ex.printStackTrace();
 		}
-		
-		this.addBehaviour(new TickerBehaviour(this, 15000) {
+
+		this.addBehaviour(new TickerBehaviour(this, 10000) {
 			private static final long serialVersionUID = -5570642512218060415L;
 
 			@Override
@@ -42,17 +44,19 @@ public class CustomerAgentStub extends Agent {
 				sd.setType("WA");
 				whDesc.addServices(sd);
 				try {
-					DFAgentDescription[] desc = DFService.search(CustomerAgentStub.this, whDesc);
-					if(desc.length == 1) {
+					DFAgentDescription[] desc = DFService.search(
+							CustomerAgentStub.this, whDesc);
+					if (desc.length == 1) {
 						msg.addReceiver(desc[0].getName());
 					} else {
-						if(desc.length > 1) {
-							System.err.println("Multiple WarehouseAgents found");
+						if (desc.length > 1) {
+							System.err
+									.println("Multiple WarehouseAgents found");
 						} else {
 							System.err.println("No WarehouseAgent found");
 						}
 					}
-				} catch(FIPAException ex) {
+				} catch (FIPAException ex) {
 					ex.printStackTrace();
 				}
 				msg.setLanguage("JSON");
@@ -65,9 +69,11 @@ public class CustomerAgentStub extends Agent {
 			private static final long serialVersionUID = -1738591542396043852L;
 
 			@Override
-			public void action() {				
-				ACLMessage recMsg = receive(MessageTemplate.or(MessageTemplate.MatchPerformative(ACLMessage.FAILURE), MessageTemplate.MatchPerformative(ACLMessage.INFORM)));
-				if(recMsg != null) {
+			public void action() {
+				ACLMessage recMsg = receive(MessageTemplate.or(
+						MessageTemplate.MatchPerformative(ACLMessage.FAILURE),
+						MessageTemplate.MatchPerformative(ACLMessage.INFORM)));
+				if (recMsg != null) {
 					System.out.println("Order finished: " + recMsg.getContent());
 					System.out.println();
 				} else {
@@ -76,10 +82,10 @@ public class CustomerAgentStub extends Agent {
 			}
 		});
 	}
-	
+
 	private String generateJSON() {
 		StringBuilder result = new StringBuilder("[");
-		for(String part : components) {
+		for (String part : components) {
 			result.append('{');
 			result.append(part);
 			result.append(':');
@@ -90,11 +96,11 @@ public class CustomerAgentStub extends Agent {
 		result.append("]");
 		return result.toString();
 	}
-	
+
 	protected void takeDown() {
 		try {
 			DFService.deregister(this);
-		} catch(FIPAException ex) {
+		} catch (FIPAException ex) {
 			ex.printStackTrace();
 		}
 	}
