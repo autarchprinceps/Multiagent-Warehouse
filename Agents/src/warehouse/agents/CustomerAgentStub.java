@@ -1,10 +1,5 @@
 package warehouse.agents;
 
-import java.util.Random;
-
-import org.json.JSONObject;
-
-import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
 import jade.core.behaviours.TickerBehaviour;
@@ -15,6 +10,8 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
+import java.util.Random;
+
 /**
  * @author Patrick Robinson
  *
@@ -22,7 +19,7 @@ import jade.lang.acl.MessageTemplate;
 public class CustomerAgentStub extends Agent {
 	private static final long serialVersionUID = 1018982190165117345L;
 	private Random r = new Random();
-	private String[] components = new String[]{ "ROTOR", "STICK" };
+	private String[] components = new String[]{ "ROTOR", "CIRCUIT", "SCREW", "BATTERY" };
 	
 	protected void setup() {
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -33,7 +30,7 @@ public class CustomerAgentStub extends Agent {
 			ex.printStackTrace();
 		}
 		
-		this.addBehaviour(new TickerBehaviour(this, 10000) {
+		this.addBehaviour(new TickerBehaviour(this, 15000) {
 			private static final long serialVersionUID = -5570642512218060415L;
 
 			@Override

@@ -69,6 +69,8 @@ public class RobotAgent extends Agent {
 		@Override
 		public void action() {
 
+			log("Transport " + currentShelf.getLocalName() + " to picker");
+
 			int transportDelay = rand.nextInt(5);
 			block(transportDelay * 1000);
 
@@ -87,6 +89,8 @@ public class RobotAgent extends Agent {
 		@Override
 		public void action() {
 
+			log("Transport " + currentShelf.getLocalName() + " back home");
+
 			int transportDelay = rand.nextInt(5);
 			block(transportDelay * 1000);
 
@@ -94,7 +98,7 @@ public class RobotAgent extends Agent {
 			message.addReceiver(currentShelf);
 			message.setProtocol("request-robot");
 			myAgent.send(message);
-			
+
 			currentShelf = null;
 			isIdle = true;
 			promisedProposal = false;

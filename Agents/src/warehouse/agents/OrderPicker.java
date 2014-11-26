@@ -303,6 +303,8 @@ public class OrderPicker extends Agent
 				case ACLMessage.INFORM:
 					System.out.println(getLocalName() + ": INFORM received from: " + shelfAnswer.getSender().getLocalName());
 					{
+						System.out.println("received content: " + content + " status: " + OrderPicker.this.orderStatus.get(content));
+						
 						if (OrderPicker.this.orderStatus.get(content) == PartStatus.SHELF_PROPOSED)
 						{
 							System.out.println(getLocalName() + ": INFORM send to: " + shelfAnswer.getSender().getLocalName()

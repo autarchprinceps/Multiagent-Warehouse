@@ -12,6 +12,9 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.json.JSONObject;
 
 /**
@@ -20,21 +23,21 @@ import org.json.JSONObject;
 public class ShelfAgent extends Agent {
 
 	public static final String SERVICE_NAME = "shelf";
+	private static final int BCAST_FREQ = 3000;
 	private static final long serialVersionUID = 1L;
-	private static final int BCAST_TICKS = 3000;
 
 	// FIELDS FOR CURRENT SHELF STATE
 	private State currentState;
 	private AID currentRobot;
 	private AID currentOrderPicker;
 	private String currentItemRequest;
+
 	private TickerBehaviour broadcastRobots;
 
-	// ITEMS THE SHELF CONTAINS
-	private String item;
-	private int quantity;
+	// INVENTORY
+	private Map<String, Integer> inventory = new HashMap<String, Integer>();
 
-	private enum State {
+	private static enum State {
 		idle, waitForRobot, travelToOrderPicker, serveOrderPicker, travelBackHome
 	}
 
@@ -49,10 +52,18 @@ public class ShelfAgent extends Agent {
 
 		// INIT FILEDS WITH ARGS
 		Object[] args = getArguments();
-		this.item = args[0].toString();
-		this.quantity = Integer.parseInt(args[1].toString());
+		String inventoryLogString = "";
+		for (int argIndex = 0; argIndex < args.length; argIndex += 2) {
 
-		log("setup with item " + item + ": " + quantity);
+			String newItem = args[argIndex].toString();
+			Integer newQuantity = Integer.parseInt(args[argIndex + 1]
+					.toString());
+
+			inventory.put(newItem, newQuantity);
+			inventoryLogString += newItem += ":" + newQuantity + " ";
+		}
+
+		log("setup with items " + "{ " + inventoryLogString + "}");
 
 		// REGISTER SERVICE
 		DFAgentDescription agentDesc = new DFAgentDescription();
@@ -86,8 +97,25 @@ public class ShelfAgent extends Agent {
 		Pair<String, Integer> requestedObject = Pair.convert(new JSONObject(
 				jsonRequest));
 		String requestedItem = requestedObject.getFirst();
-		int requestedCount = requestedObject.getSecond();
-		return item.equals(requestedItem) && requestedCount <= quantity;
+		int requestedQuantity = requestedObject.getSecond();
+
+		if (inventory.containsKey(requestedItem)) {
+			if (inventory.get(requestedItem) >= requestedQuantity) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	protected void decreaseInventory(String jsonRequest) {
+		Pair<String, Integer> requestedObject = Pair.convert(new JSONObject(
+				jsonRequest));
+		String requestedItem = requestedObject.getFirst();
+		int requestedQuantity = requestedObject.getSecond();
+
+		Integer oldQuantity = inventory.get(requestedItem);
+		inventory.put(requestedItem, oldQuantity - requestedQuantity);
 	}
 
 	private class BroadcastRobots extends TickerBehaviour {
@@ -179,7 +207,8 @@ public class ShelfAgent extends Agent {
 					} else {
 
 						// GOT A ROBOT
-						log("ACCEPT_PROPOSAL with " + message.getSender().getLocalName());
+						log("ACCEPT_PROPOSAL with "
+								+ message.getSender().getLocalName());
 						response.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
 						send(response);
 
@@ -198,7 +227,8 @@ public class ShelfAgent extends Agent {
 					if (currentState == State.travelToOrderPicker) {
 
 						// ARRIVAL AT THE ORDER PICKER
-						log("INFORM arrived at " + currentOrderPicker.getLocalName());
+						log("INFORM arrived at "
+								+ currentOrderPicker.getLocalName());
 						currentState = State.serveOrderPicker;
 						addBehaviour(new ArriveAtOrderPicker());
 
@@ -231,12 +261,13 @@ public class ShelfAgent extends Agent {
 
 				ACLMessage response = message.createReply();
 				response.setContent(message.getContent());
-				
+
 				switch (message.getPerformative()) {
 
 				case ACLMessage.QUERY_IF:
 
-					if (hasItem(message.getContent())) {
+					if (currentState == State.idle
+							&& hasItem(message.getContent())) {
 
 						// ANSWER WHEN THE SHELF HAS THE ITEM
 						response.setPerformative(ACLMessage.CONFIRM);
@@ -272,7 +303,7 @@ public class ShelfAgent extends Agent {
 						currentItemRequest = message.getContent();
 						currentOrderPicker = message.getSender();
 						broadcastRobots = new BroadcastRobots(myAgent,
-								BCAST_TICKS);
+								BCAST_FREQ);
 						addBehaviour(broadcastRobots);
 					}
 					break;
@@ -280,6 +311,14 @@ public class ShelfAgent extends Agent {
 				case ACLMessage.INFORM:
 
 					if (currentState == State.serveOrderPicker) {
+
+						// check again to be sure its the right item
+						if (!hasItem(message.getContent())) {
+							log("something went wrong: delivered wrong item!");
+						} else {
+							// decrease inventory
+							decreaseInventory(message.getContent());
+						}
 
 						// TRAVEL BACK HOME
 						currentState = State.travelBackHome;
@@ -295,6 +334,7 @@ public class ShelfAgent extends Agent {
 			}
 
 		}
+
 	}
 
 	private void log(String log) {
