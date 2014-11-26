@@ -35,8 +35,6 @@
 * Refactor Hashmaps which use Pair<String, Integer or Boolean>). References to keys break. Need to search for getFirst and getSecond to find correct key again.
 
 ### Bastian Mager
-* Model that a Shelf has more than one item
-* Model that the Shelfs inventory decreases (?) 
 * Link Robots with that simulation software (?)
 
 ## Running

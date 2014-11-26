@@ -35,8 +35,6 @@ public class RobotAgent extends Agent {
 	@Override
 	protected void setup() {
 
-		log("setup");
-
 		// REGISTER SERVICE
 		DFAgentDescription agentDesc = new DFAgentDescription();
 		ServiceDescription serviceDesc = new ServiceDescription();
@@ -51,6 +49,8 @@ public class RobotAgent extends Agent {
 			e.printStackTrace();
 		}
 
+		log("setup done");
+		
 	}
 
 	@Override
