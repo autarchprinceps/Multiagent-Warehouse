@@ -291,20 +291,21 @@ public class OrderPicker extends Agent
 					break;
 				case ACLMessage.ACCEPT_PROPOSAL:
 					System.out.println(getLocalName() + ": ACCEPT_PROPOSAL received from: "
-							+ shelfAnswer.getSender().getLocalName());
+							+ shelfAnswer.getSender().getLocalName() + "||" + content);
 					OrderPicker.this.orderStatus.put(content, PartStatus.SHELF_PROPOSED);
 					break;
 				case ACLMessage.REJECT_PROPOSAL:
 					System.out.println(getLocalName() + ": REJECT_PROPOSAL received from: "
-							+ shelfAnswer.getSender().getLocalName());
+							+ shelfAnswer.getSender().getLocalName() + "||" + content);
 					Behaviour itemBroadcast = new ItemBroadcaster(content);
 					addBehaviour(itemBroadcast);
 					break;
 				case ACLMessage.INFORM:
 					System.out.println(getLocalName() + ": INFORM received from: " + shelfAnswer.getSender().getLocalName());
 					{
-						System.out.println("received content: " + content + " status: " + OrderPicker.this.orderStatus.get(content));
-						
+						System.out
+								.println("received content: " + content + " status: " + OrderPicker.this.orderStatus.get(content));
+
 						if (OrderPicker.this.orderStatus.get(content) == PartStatus.SHELF_PROPOSED)
 						{
 							System.out.println(getLocalName() + ": INFORM send to: " + shelfAnswer.getSender().getLocalName()
