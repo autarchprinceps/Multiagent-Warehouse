@@ -167,7 +167,7 @@ public class RobotAgent extends Agent {
 	}
 
 	private void log(String log) {
-		System.out.println(getLocalName() + ": " + log);
+		//System.out.println(getLocalName() + ": " + log);
 	}
 
 }
