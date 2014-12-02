@@ -28,7 +28,7 @@
 
 ### Patrick Robinson
 * Adapt to standardised order request format
-* What if QUERY_IF never returns a CONFIRM?
+	- XML not valid
 
 ### Daniel Pyka
 * If no other agents answer (for example on item broadcasts) the whole workflow stops
