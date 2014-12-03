@@ -387,7 +387,7 @@ public class OrderPicker extends Agent
 		public AbortOrder(Agent a)
 		{
 			// check every 5s
-			super(a, 5000);
+			super(a, 2000);
 		}
 
 		private static final long serialVersionUID = 1L;
@@ -401,7 +401,7 @@ public class OrderPicker extends Agent
 			}
 			else
 			{
-				if (this.i == OrderPicker.this.orderList.length() * 2)
+				if (this.i == OrderPicker.this.orderList.length() * 5)
 				{
 					removeBehaviour(OrderPicker.this.shelfInteraction);
 
