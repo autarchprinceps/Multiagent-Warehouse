@@ -31,8 +31,7 @@
 	- XML not valid
 
 ### Daniel Pyka
-* If no other agents answer (for example on item broadcasts) the whole workflow stops
-* Refactor Hashmaps which use Pair<String, Integer or Boolean>). References to keys break. Need to search for getFirst and getSecond to find correct key again.
+* Maybe broadcast all items at once, speeds up whole orderpicker, shelf robot interaction
 
 ### Bastian Mager
 * Link Robots with that simulation software (?)
