@@ -80,7 +80,7 @@ public class OrderAgent extends Agent {
 				addBehaviour(ack);
 				removeBehaviour(pick);
 				pick = null;
-				System.out.println("OrderAgent CONFIRM received, REQUEST send: " + OrderAgent.this.getLocalName());
+				// System.out.println("OrderAgent CONFIRM received, REQUEST send: " + OrderAgent.this.getLocalName());
 			} else {
 				// block();
 				query = new OrderPickerQuerier();
