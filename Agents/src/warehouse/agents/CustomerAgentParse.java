@@ -1,7 +1,9 @@
 package warehouse.agents;
 
+import jade.core.AID;
 import jade.core.Agent;
 import jade.core.behaviours.CyclicBehaviour;
+import jade.core.behaviours.OneShotBehaviour;
 import jade.core.behaviours.TickerBehaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
@@ -10,18 +12,19 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
-/**
- * @author Patrick Robinson
- *
- */
-public class CustomerAgentStub extends Agent {
-	private static final long serialVersionUID = 1018982190165117345L;
-	private Random r = new Random();
-	private String[] components = new String[] { "ROTOR", "CIRCUIT", "SCREW",
-			"BATTERY", "STABILISER", "TUNER", "CHARGER", "ENGINE", "CASE",
-			"CAMERA", "SPOTLIGHT" };
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+public class CustomerAgentParse extends Agent {
+	private static final long serialVersionUID = 2904092632296557020L;
+	
+	private List<JSONObject> orders;
 
 	protected void setup() {
 		DFAgentDescription dfd = new DFAgentDescription();
@@ -31,23 +34,47 @@ public class CustomerAgentStub extends Agent {
 		} catch (FIPAException ex) {
 			ex.printStackTrace();
 		}
-
-		this.addBehaviour(new TickerBehaviour(this, 10000) {
-			private static final long serialVersionUID = -5570642512218060415L;
+		
+		Object[] args = getArguments();
+		for(Object arg : args) {
+			System.err.println(arg);
+		}
+		orders = new ArrayList<>();
+		JSONObject order = null;
+		for(int i = 0; i < args.length; i++) {
+			if(args[i].toString().equals("begin")) {
+				order = new JSONObject();
+				order.put("id", Integer.parseInt(args[++i].toString()));
+				JSONArray products = new JSONArray();
+				while(!args[++i].toString().equals("end")) {
+					JSONObject product = new JSONObject();
+					product.put(args[i++].toString(), Integer.parseInt(args[i].toString()));
+					products.put(product);
+				}
+				order.put("products", products);
+				orders.add(order);
+			}
+		}
+		orders.forEach((ordr) -> {
+			System.err.println(ordr);
+		});
+		
+		this.addBehaviour(new OneShotBehaviour() {
+			private static final long serialVersionUID = 1L;
 
 			@Override
-			protected void onTick() {
-				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+			public void action() {			
 				DFAgentDescription whDesc = new DFAgentDescription();
 				ServiceDescription sd = new ServiceDescription();
 				sd.setName("WarehouseAgent");
 				sd.setType("WA");
 				whDesc.addServices(sd);
+				AID wh;
 				try {
 					DFAgentDescription[] desc = DFService.search(
-							CustomerAgentStub.this, whDesc);
+							CustomerAgentParse.this, whDesc);
 					if (desc.length == 1) {
-						msg.addReceiver(desc[0].getName());
+						wh = desc[0].getName();
 					} else {
 						if (desc.length > 1) {
 							System.err
@@ -55,14 +82,20 @@ public class CustomerAgentStub extends Agent {
 						} else {
 							System.err.println("No WarehouseAgent found");
 						}
+						return;
 					}
 				} catch (FIPAException ex) {
 					ex.printStackTrace();
+					return;
 				}
-				msg.setLanguage("JSON");
-				msg.setContent(generateJSON());
-				msg.addReplyTo(getAID());
-				send(msg);
+				for(JSONObject order : orders) {
+					ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
+					msg.addReceiver(wh);
+					msg.setLanguage("JSON");
+					msg.setContent(order.toString());
+					msg.addReplyTo(getAID());
+					send(msg);
+				}
 			}
 		});
 		this.addBehaviour(new CyclicBehaviour() {
@@ -81,20 +114,6 @@ public class CustomerAgentStub extends Agent {
 				}
 			}
 		});
-	}
-
-	private String generateJSON() {
-		StringBuilder result = new StringBuilder("[");
-		for (String part : components) {
-			result.append('{');
-			result.append(part);
-			result.append(':');
-			result.append(r.nextInt(10) + 1);
-			result.append("},");
-		}
-		result.deleteCharAt(result.length() - 1);
-		result.append("]");
-		return result.toString();
 	}
 
 	protected void takeDown() {

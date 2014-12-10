@@ -35,9 +35,10 @@ public class WarehouseAgent extends Agent {
 		public void action() {
 			ACLMessage recMsg = receive(MessageTemplate.MatchPerformative(ACLMessage.REQUEST));
 			if(recMsg != null) {
-				JSONArray json = new JSONArray(recMsg.getContent());
+				JSONObject js = new JSONObject(recMsg.getContent());
+				JSONArray json = js.getJSONArray("products");
 				Order ordr = new Order();
-				ordr.id = id_gen++;
+				ordr.id = js.getInt("id");
 				// Confirm Order
 				ACLMessage response = new ACLMessage(ACLMessage.AGREE);
 				Iterator<AID> replyTo = recMsg.getAllReplyTo();
