@@ -5,10 +5,6 @@
 * Working:
 	* Order is successfully completed in standard case
 	* see wiki/architekture for the interaction design between the agents
-* Possible issues:
-	* What if nothing is free
-	* What if some items are not available (is this in scope?)
-	* ...
 
 ## Work-Sharing
 
@@ -27,8 +23,8 @@
 ## TODO-List
 
 ### Patrick Robinson
-* Adapt to standardised order request format
-	- XML not valid
+* Debug parse config skript
+* Include orders in parse config skript
 
 ### Daniel Pyka
 * Maybe broadcast all items at once, speeds up whole orderpicker, shelf robot interaction
