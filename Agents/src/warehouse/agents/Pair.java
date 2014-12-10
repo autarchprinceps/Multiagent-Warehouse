@@ -29,7 +29,8 @@ class Pair<K, V> {
         return second;
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public boolean equals(Object obj) {
     	if(obj instanceof Pair<?, ?>) {
     		// TODO check K == obj.K && V == obj.V
