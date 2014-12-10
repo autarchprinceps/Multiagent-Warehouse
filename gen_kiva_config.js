@@ -1,4 +1,4 @@
-console.log( JSON.stringify({
+console.log(JSON.stringify({
 	shelves: [
 		{
 			uid: 0,
