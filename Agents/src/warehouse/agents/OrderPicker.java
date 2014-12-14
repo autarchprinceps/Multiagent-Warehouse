@@ -17,6 +17,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,7 +33,7 @@ public class OrderPicker extends Agent
 	private static final long serialVersionUID = 1L;
 	public static final String SERVICE_NAME = "pick";
 
-	BufferedWriter writer = null;
+	PrintWriter writer = null;
 	File logFile = null;
 
 	private static enum ItemStatus
@@ -148,13 +149,18 @@ public class OrderPicker extends Agent
 
 	private void initLogFile(AID currentOrderAgent)
 	{
+		this.logFile = new File(getLocalName() + "_" + currentOrderAgent.getLocalName() + ".txt");
+		if (this.logFile.exists())
+		{
+			this.logFile.delete();
+		}
 		try
 		{
-			this.logFile = new File(getLocalName() + "_" + currentOrderAgent.getLocalName() + ".txt");
-			this.writer = new BufferedWriter(new FileWriter(this.logFile));
-			this.writer.write("logFile created!" + System.getProperty("line.separator"));
-			this.writer.write(System.getProperty("line.separator"));
-			System.out.println("log file created:" + this.logFile.getCanonicalPath());
+			this.writer = new PrintWriter(new BufferedWriter(new FileWriter(this.logFile, true)));
+			this.writer.println("logFile created!");
+			this.writer.println();
+			this.writer.flush();
+			System.out.println("log file created: " + this.logFile.getCanonicalPath());
 		}
 		catch (IOException e)
 		{
@@ -164,14 +170,8 @@ public class OrderPicker extends Agent
 
 	private void logFile(String line)
 	{
-		try
-		{
-			this.writer.write(line + System.getProperty("line.separator"));
-		}
-		catch (IOException e)
-		{
-			System.out.println("writing to logFile failed!");
-		}
+		this.writer.println(line);
+		this.writer.flush();
 	}
 
 	private void logFileItemStatus()
