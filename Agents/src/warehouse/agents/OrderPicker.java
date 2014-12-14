@@ -13,6 +13,10 @@ import jade.domain.FIPAAgentManagement.ServiceDescription;
 import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,17 +32,20 @@ public class OrderPicker extends Agent
 	private static final long serialVersionUID = 1L;
 	public static final String SERVICE_NAME = "pick";
 
-	private static enum PartStatus
+	BufferedWriter writer = null;
+	File logFile = null;
+
+	private static enum ItemStatus
 	{
 		BROADCASTED, SHELF_PROPOSED, SHELF_ACCEPTED, PROPERTY
 	};
 
 	private boolean isIdle;
 	private AID currentOrderAgent;
-	private JSONArray orderList = new JSONArray();
-	private JSONArray order = new JSONArray();
+	private JSONArray orderIncoming = new JSONArray();
+	private JSONArray orderOutgoing = new JSONArray();
 
-	private final Map<Pair<String, Integer>, PartStatus> orderStatus = new HashMap<Pair<String, Integer>, PartStatus>();
+	private final Map<Pair<String, Integer>, ItemStatus> itemStatus = new HashMap<Pair<String, Integer>, ItemStatus>();
 	private final Map<Pair<String, Integer>, String> shelfInfo = new HashMap<Pair<String, Integer>, String>();
 
 	private Behaviour idle;
@@ -91,9 +98,9 @@ public class OrderPicker extends Agent
 	private boolean checkOrderCompletion()
 	{
 		boolean tmp = true;
-		for (Pair<String, Integer> key : this.orderStatus.keySet())
+		for (Pair<String, Integer> key : this.itemStatus.keySet())
 		{
-			switch (this.orderStatus.get(key))
+			switch (this.itemStatus.get(key))
 			{
 			case BROADCASTED:
 				tmp = tmp && false;
@@ -116,27 +123,65 @@ public class OrderPicker extends Agent
 
 	private void rebroadcast()
 	{
-		for (Pair<String, Integer> key : this.orderStatus.keySet())
+		JSONArray missingItems = new JSONArray();
+		for (Pair<String, Integer> item : this.itemStatus.keySet())
 		{
-			switch (this.orderStatus.get(key))
+			switch (this.itemStatus.get(item))
 			{
 			case BROADCASTED:
-				Behaviour itemBroadcast = new ItemBroadcaster(key);
-				addBehaviour(itemBroadcast);
+				missingItems.put(item);
+				OrderPicker.this.itemStatus.put(item, ItemStatus.BROADCASTED);
 				break;
 			case SHELF_PROPOSED:
-				// nothing
 				break;
 			case SHELF_ACCEPTED:
-				// nothing
 				break;
 			case PROPERTY:
-				// nothing
 				break;
 			default:
 				throw new RuntimeException("Invalid value in orderStatus HashMap!");
 			}
 		}
+		Behaviour requiredItems = new Broadcaster(missingItems);
+		addBehaviour(requiredItems);
+	}
+
+	private void initLogFile(AID currentOrderAgent)
+	{
+		try
+		{
+			this.logFile = new File(getLocalName() + "_" + currentOrderAgent.getLocalName() + ".txt");
+			this.writer = new BufferedWriter(new FileWriter(this.logFile));
+			this.writer.write("logFile created!" + System.getProperty("line.separator"));
+			this.writer.write(System.getProperty("line.separator"));
+			System.out.println("log file created:" + this.logFile.getCanonicalPath());
+		}
+		catch (IOException e)
+		{
+			System.out.println("creating log file failed!");
+		}
+	}
+
+	private void logFile(String line)
+	{
+		try
+		{
+			this.writer.write(line + System.getProperty("line.separator"));
+		}
+		catch (IOException e)
+		{
+			System.out.println("writing to logFile failed!");
+		}
+	}
+
+	private void logFileItemStatus()
+	{
+		logFile("---itemStatus---");
+		for (Pair<String, Integer> key : OrderPicker.this.itemStatus.keySet())
+		{
+			logFile(key + " : " + OrderPicker.this.itemStatus.get(key));
+		}
+		logFile("");
 	}
 
 	private void log(String log)
@@ -194,17 +239,21 @@ public class OrderPicker extends Agent
 						send(agree);
 
 						log("REQUEST items: " + request.getContent());
-						OrderPicker.this.orderList = new JSONArray(request.getContent());
+						OrderPicker.this.orderIncoming = new JSONArray(request.getContent());
 
 						OrderPicker.this.shelfInteraction = new ShelfInteraction();
 						addBehaviour(OrderPicker.this.shelfInteraction);
 
-						for (int i = 0; i < OrderPicker.this.orderList.length(); i++)
+						initLogFile(OrderPicker.this.currentOrderAgent);
+						for (int i = 0; i < OrderPicker.this.orderIncoming.length(); i++)
 						{
-							Pair<String, Integer> item = Pair.convert(OrderPicker.this.orderList.getJSONObject(i));
-							Behaviour itemBroadcast = new ItemBroadcaster(item);
-							addBehaviour(itemBroadcast);
+							Pair<String, Integer> item = Pair.convert(OrderPicker.this.orderIncoming.getJSONObject(i));
+							OrderPicker.this.itemStatus.put(item, ItemStatus.BROADCASTED);
 						}
+						logFileItemStatus();
+
+						Behaviour incomingOrderBC = new Broadcaster(OrderPicker.this.orderIncoming);
+						addBehaviour(incomingOrderBC);
 
 						OrderPicker.this.abortOrder = new AbortOrder(this.myAgent);
 						addBehaviour(OrderPicker.this.abortOrder);
@@ -229,22 +278,22 @@ public class OrderPicker extends Agent
 
 	}
 
-	private class ItemBroadcaster extends OneShotBehaviour
+	private class Broadcaster extends OneShotBehaviour
 	{
 		private static final long serialVersionUID = 1L;
 
-		private final Pair<String, Integer> item;
+		private final JSONArray requiredItems;
 
-		public ItemBroadcaster(Pair<String, Integer> item)
+		public Broadcaster(JSONArray orderList)
 		{
-			this.item = item;
+			this.requiredItems = orderList;
 		}
 
 		@Override
 		public void action()
 		{
-			ACLMessage itemBroadcast = new ACLMessage(ACLMessage.QUERY_IF);
-			itemBroadcast.setProtocol("request-item");
+			ACLMessage broadcast = new ACLMessage(ACLMessage.QUERY_IF);
+			broadcast.setProtocol("request-item");
 
 			DFAgentDescription orderPickerDesc = new DFAgentDescription();
 			ServiceDescription sd = new ServiceDescription();
@@ -254,7 +303,7 @@ public class OrderPicker extends Agent
 			{
 				for (DFAgentDescription desc : DFService.search(OrderPicker.this, orderPickerDesc))
 				{
-					itemBroadcast.addReceiver(desc.getName());
+					broadcast.addReceiver(desc.getName());
 				}
 			}
 			catch (FIPAException e)
@@ -262,11 +311,11 @@ public class OrderPicker extends Agent
 				e.printStackTrace();
 			}
 
-			OrderPicker.this.orderStatus.put(this.item, PartStatus.BROADCASTED);
-			log("broadcast: " + this.item.toString());
-
-			itemBroadcast.setContent(this.item.toString());
-			send(itemBroadcast);
+			logFile("---new broadcast requiredItems---");
+			logFile("broadcast: " + this.requiredItems);
+			logFile("");
+			broadcast.setContent(this.requiredItems.toString());
+			send(broadcast);
 			removeBehaviour(this);
 		}
 	}
@@ -278,70 +327,92 @@ public class OrderPicker extends Agent
 		@Override
 		public void action()
 		{
-			ACLMessage shelfAnswer = receive(MessageTemplate.MatchProtocol("request-item"));
+			ACLMessage shelfMsg = receive(MessageTemplate.MatchProtocol("request-item"));
 
-			if (shelfAnswer != null)
+			if (shelfMsg != null)
 			{
-				Pair<String, Integer> content = Pair.convert(new JSONObject(shelfAnswer.getContent()));
+				JSONArray shelfMsgContent = new JSONArray(shelfMsg.getContent());
+				JSONArray opMsgContent = new JSONArray();
 
-				log("got msg from " + shelfAnswer.getSender().getLocalName() + " "
-						+ ACLMessage.getPerformative(shelfAnswer.getPerformative()) + " content: " + content);
+				logFile("---shelfInteraction---");
+				logFile("from: " + shelfMsg.getSender().getLocalName());
+				logFile("aclmessage: " + ACLMessage.getPerformative(shelfMsg.getPerformative()));
+				logFile("");
 
-				switch (shelfAnswer.getPerformative())
+				switch (shelfMsg.getPerformative())
 				{
 				case ACLMessage.CONFIRM:
-					// first shelf which answers to the broadcast will get the propose
-					if (OrderPicker.this.orderStatus.get(content) == PartStatus.BROADCASTED)
+					for (int i = 0; i < shelfMsgContent.length(); i++)
 					{
-						log("PROPOSE send to : " + shelfAnswer.getSender().getLocalName());
-						ACLMessage propose = shelfAnswer.createReply();
-						propose.setPerformative(ACLMessage.PROPOSE);
-						propose.setContent(content.toString());
-						OrderPicker.this.orderStatus.put(content, PartStatus.SHELF_PROPOSED);
-						send(propose);
+						Pair<String, Integer> item = Pair.convert(new JSONObject(shelfMsgContent.get(i)));
+						if (OrderPicker.this.itemStatus.get(item) == ItemStatus.BROADCASTED
+								&& !OrderPicker.this.shelfInfo.containsKey(item))
+						{
+							OrderPicker.this.itemStatus.put(item, ItemStatus.SHELF_PROPOSED);
+							OrderPicker.this.shelfInfo.put(item, shelfMsg.getSender().getLocalName());
+							opMsgContent.put(item.toString());
+						}
 					}
+					log("PROPOSE send to : " + shelfMsg.getSender().getLocalName());
+					ACLMessage propose = shelfMsg.createReply();
+					propose.setPerformative(ACLMessage.PROPOSE);
+					propose.setContent(opMsgContent.toString());
+					send(propose);
 					break;
 				case ACLMessage.ACCEPT_PROPOSAL:
-					// flag item to not being rebroadcasted again
-					// store information which shelf brings the item to check later
-					if (OrderPicker.this.orderStatus.get(content) == PartStatus.SHELF_PROPOSED)
+					for (int i = 0; i < shelfMsgContent.length(); i++)
 					{
-						OrderPicker.this.orderStatus.put(content, PartStatus.SHELF_ACCEPTED);
-						OrderPicker.this.shelfInfo.put(content, shelfAnswer.getSender().getLocalName());
+						Pair<String, Integer> item = Pair.convert(new JSONObject(shelfMsgContent.get(i)));
+						if (OrderPicker.this.itemStatus.get(item) == ItemStatus.SHELF_PROPOSED
+								&& OrderPicker.this.shelfInfo.get(item).equals(shelfMsg.getSender().getLocalName()))
+						{
+							OrderPicker.this.itemStatus.put(item, ItemStatus.SHELF_ACCEPTED);
+						}
 					}
 					break;
 				case ACLMessage.REJECT_PROPOSAL:
-					// only effective if there are some more shelfs which contain the
-					// specific item
-					// and the system does not wait for robots too long
-					Behaviour itemBroadcast = new ItemBroadcaster(content);
-					addBehaviour(itemBroadcast);
+					for (int i = 0; i < shelfMsgContent.length(); i++)
+					{
+						Pair<String, Integer> item = Pair.convert(new JSONObject(shelfMsgContent.get(i)));
+						if (OrderPicker.this.itemStatus.get(item) == ItemStatus.SHELF_PROPOSED
+								&& OrderPicker.this.shelfInfo.get(item).equals(shelfMsg.getSender().getLocalName()))
+						{
+							OrderPicker.this.itemStatus.put(item, ItemStatus.BROADCASTED);
+							OrderPicker.this.shelfInfo.remove(item);
+							opMsgContent.put(item.toString());
+						}
+					}
+					Behaviour rebroadcast = new Broadcaster(opMsgContent);
+					addBehaviour(rebroadcast);
 					break;
 				case ACLMessage.INFORM:
-					// orderpicker checks if the item was proposed by some shelf
-					// check if the shelf is the correct one (the same as proposed)
-					if (OrderPicker.this.orderStatus.get(content) == PartStatus.SHELF_ACCEPTED
-							&& OrderPicker.this.shelfInfo.get(content).equals(shelfAnswer.getSender().getLocalName()))
+					for (int i = 0; i < shelfMsgContent.length(); i++)
 					{
-						log("INFORM send to " + shelfAnswer.getSender().getLocalName() + " (take item)");
-						ACLMessage inform = shelfAnswer.createReply();
-						inform.setPerformative(ACLMessage.INFORM);
-						inform.setContent(content.toString());
-						send(inform);
-						OrderPicker.this.order.put(content);
-						OrderPicker.this.orderStatus.put(content, PartStatus.PROPERTY);
-
-						if (checkOrderCompletion())
+						Pair<String, Integer> item = Pair.convert(new JSONObject(shelfMsgContent.get(i)));
+						if (OrderPicker.this.itemStatus.get(item) == ItemStatus.SHELF_ACCEPTED
+								&& OrderPicker.this.shelfInfo.get(item).equals(shelfMsg.getSender().getLocalName()))
 						{
-							OrderPicker.this.finishOrder = new FinishOrder();
-							addBehaviour(OrderPicker.this.finishOrder);
+							opMsgContent.put(item);
+							OrderPicker.this.orderOutgoing.put(item);
+							OrderPicker.this.itemStatus.put(item, ItemStatus.PROPERTY);
 						}
+					}
+					log("INFORM send to " + shelfMsg.getSender().getLocalName() + " (take item)");
+					ACLMessage inform = shelfMsg.createReply();
+					inform.setPerformative(ACLMessage.INFORM);
+					inform.setContent(opMsgContent.toString());
+					send(inform);
+					if (checkOrderCompletion())
+					{
+						OrderPicker.this.finishOrder = new FinishOrder();
+						addBehaviour(OrderPicker.this.finishOrder);
 					}
 					break;
 				default:
 					// ignore, do nothing
 					break;
 				}
+				logFileItemStatus();
 			}
 			else
 			{
@@ -366,13 +437,13 @@ public class OrderPicker extends Agent
 			inform.addReceiver(OrderPicker.this.currentOrderAgent);
 			inform.setLanguage("JSON");
 			inform.setProtocol("JSON");
-			inform.setContent(OrderPicker.this.order.toString());
+			inform.setContent(OrderPicker.this.orderOutgoing.toString());
 			send(inform);
 
-			OrderPicker.this.orderStatus.clear();
+			OrderPicker.this.itemStatus.clear();
 			OrderPicker.this.shelfInfo.clear();
-			OrderPicker.this.order = null;
-			OrderPicker.this.order = new JSONArray();
+			OrderPicker.this.orderOutgoing = null;
+			OrderPicker.this.orderOutgoing = new JSONArray();
 
 			OrderPicker.this.isIdle = true;
 
@@ -401,7 +472,7 @@ public class OrderPicker extends Agent
 			}
 			else
 			{
-				if (this.i == OrderPicker.this.orderList.length() * 5)
+				if (this.i == OrderPicker.this.orderIncoming.length() * 5)
 				{
 					removeBehaviour(OrderPicker.this.shelfInteraction);
 
@@ -412,13 +483,13 @@ public class OrderPicker extends Agent
 					inform.addReceiver(OrderPicker.this.currentOrderAgent);
 					inform.setLanguage("JSON");
 					inform.setProtocol("JSON");
-					inform.setContent(OrderPicker.this.order.toString());
+					inform.setContent(OrderPicker.this.orderOutgoing.toString());
 					send(inform);
 
-					OrderPicker.this.orderStatus.clear();
+					OrderPicker.this.itemStatus.clear();
 					OrderPicker.this.shelfInfo.clear();
-					OrderPicker.this.order = null;
-					OrderPicker.this.order = new JSONArray();
+					OrderPicker.this.orderOutgoing = null;
+					OrderPicker.this.orderOutgoing = new JSONArray();
 
 					OrderPicker.this.isIdle = true;
 
