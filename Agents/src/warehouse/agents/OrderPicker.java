@@ -344,13 +344,14 @@ public class OrderPicker extends Agent
 				case ACLMessage.CONFIRM:
 					for (int i = 0; i < shelfMsgContent.length(); i++)
 					{
-						Pair<String, Integer> item = Pair.convert(new JSONObject(shelfMsgContent.get(i)));
+						JSONObject itemJSON = shelfMsgContent.getJSONObject(i);
+						Pair<String, Integer> item = Pair.convert(itemJSON);
 						if (OrderPicker.this.itemStatus.get(item) == ItemStatus.BROADCASTED
 								&& !OrderPicker.this.shelfInfo.containsKey(item))
 						{
 							OrderPicker.this.itemStatus.put(item, ItemStatus.SHELF_PROPOSED);
 							OrderPicker.this.shelfInfo.put(item, shelfMsg.getSender().getLocalName());
-							opMsgContent.put(item.toString());
+							opMsgContent.put(itemJSON);
 						}
 					}
 					log("PROPOSE send to : " + shelfMsg.getSender().getLocalName());
@@ -362,7 +363,7 @@ public class OrderPicker extends Agent
 				case ACLMessage.ACCEPT_PROPOSAL:
 					for (int i = 0; i < shelfMsgContent.length(); i++)
 					{
-						Pair<String, Integer> item = Pair.convert(new JSONObject(shelfMsgContent.get(i)));
+						Pair<String, Integer> item = Pair.convert(shelfMsgContent.getJSONObject(i));
 						if (OrderPicker.this.itemStatus.get(item) == ItemStatus.SHELF_PROPOSED
 								&& OrderPicker.this.shelfInfo.get(item).equals(shelfMsg.getSender().getLocalName()))
 						{
@@ -373,13 +374,14 @@ public class OrderPicker extends Agent
 				case ACLMessage.REJECT_PROPOSAL:
 					for (int i = 0; i < shelfMsgContent.length(); i++)
 					{
-						Pair<String, Integer> item = Pair.convert(new JSONObject(shelfMsgContent.get(i)));
+						JSONObject itemJSON = shelfMsgContent.getJSONObject(i);
+						Pair<String, Integer> item = Pair.convert(itemJSON);
 						if (OrderPicker.this.itemStatus.get(item) == ItemStatus.SHELF_PROPOSED
 								&& OrderPicker.this.shelfInfo.get(item).equals(shelfMsg.getSender().getLocalName()))
 						{
 							OrderPicker.this.itemStatus.put(item, ItemStatus.BROADCASTED);
 							OrderPicker.this.shelfInfo.remove(item);
-							opMsgContent.put(item.toString());
+							opMsgContent.put(itemJSON);
 						}
 					}
 					Behaviour rebroadcast = new Broadcaster(opMsgContent);
@@ -388,11 +390,12 @@ public class OrderPicker extends Agent
 				case ACLMessage.INFORM:
 					for (int i = 0; i < shelfMsgContent.length(); i++)
 					{
-						Pair<String, Integer> item = Pair.convert(new JSONObject(shelfMsgContent.get(i)));
+						JSONObject itemJSON = shelfMsgContent.getJSONObject(i);
+						Pair<String, Integer> item = Pair.convert(itemJSON);
 						if (OrderPicker.this.itemStatus.get(item) == ItemStatus.SHELF_ACCEPTED
 								&& OrderPicker.this.shelfInfo.get(item).equals(shelfMsg.getSender().getLocalName()))
 						{
-							opMsgContent.put(item);
+							opMsgContent.put(itemJSON);
 							OrderPicker.this.orderOutgoing.put(item);
 							OrderPicker.this.itemStatus.put(item, ItemStatus.PROPERTY);
 						}

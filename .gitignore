@@ -7,7 +7,8 @@ Agents/APDescription.txt
 Agents/MTPs-Main-Container.txt
 MTPs-Main-Container.txt
 APDescription.txt
-
+Agents/orderpicker*.txt
+Agents/shelf*.txt
 # tmp
 *~
 

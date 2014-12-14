@@ -16,6 +16,7 @@ import jade.lang.acl.MessageTemplate;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
@@ -101,32 +102,39 @@ public class ShelfAgent extends Agent {
 		}
 	}
 
-	protected boolean hasItem(String jsonRequest) {
-		/*
-		 * EXAMPLE IN JSON: { ROTOR : 1 }
-		 */
-		Pair<String, Integer> requestedObject = Pair.convert(new JSONObject(
-				jsonRequest));
-		String requestedItem = requestedObject.getFirst();
-		int requestedQuantity = requestedObject.getSecond();
+	protected JSONArray getAvailableItems(String jsonRequest) {
+		JSONArray availableItems = new JSONArray();
+		JSONArray requestedItems = new JSONArray(jsonRequest);
+		for (int i = 0; i < requestedItems.length(); i++) {
 
-		if (inventory.containsKey(requestedItem)) {
-			if (inventory.get(requestedItem) >= requestedQuantity) {
-				return true;
+			JSONObject requestedItem = requestedItems.getJSONObject(i);
+			Pair<String, Integer> itemWithQuantity = Pair
+					.convert(requestedItem);
+
+			if (inventory.containsKey(itemWithQuantity.getFirst())) {
+				if (inventory.get(itemWithQuantity.getFirst()) >= itemWithQuantity
+						.getSecond()) {
+					availableItems.put(requestedItem);
+				}
 			}
+
 		}
 
-		return false;
+		return availableItems;
 	}
 
 	protected void decreaseInventory(String jsonRequest) {
-		Pair<String, Integer> requestedObject = Pair.convert(new JSONObject(
-				jsonRequest));
-		String requestedItem = requestedObject.getFirst();
-		int requestedQuantity = requestedObject.getSecond();
 
-		Integer oldQuantity = inventory.get(requestedItem);
-		inventory.put(requestedItem, oldQuantity - requestedQuantity);
+		JSONArray requestedItems = new JSONArray(jsonRequest);
+		for (int i = 0; i < requestedItems.length(); i++) {
+			Pair<String, Integer> itemWithQuantity = Pair
+					.convert(requestedItems.getJSONObject(i));
+			Integer oldQuantity = inventory.get(itemWithQuantity.getFirst());
+			inventory.put(itemWithQuantity.getFirst(), oldQuantity
+					- itemWithQuantity.getSecond());
+
+		}
+
 	}
 
 	private class BroadcastRobots extends TickerBehaviour {
@@ -299,15 +307,19 @@ public class ShelfAgent extends Agent {
 
 				case ACLMessage.QUERY_IF:
 
-					if (currentState == State.idle
-							&& hasItem(message.getContent())) {
+					if (currentState == State.idle) {
 
-						// ANSWER WHEN THE SHELF HAS THE ITEM
-						response.setPerformative(ACLMessage.CONFIRM);
-						send(response);
+						JSONArray availableItems = getAvailableItems(message
+								.getContent());
+						if (availableItems.length() > 0) {
+							// ANSWER WHEN THE SHELF HAS THE ITEM
+							response.setPerformative(ACLMessage.CONFIRM);
+							response.setContent(availableItems.toString());
+							send(response);
 
-						log("CONFIRM got items for "
-								+ message.getSender().getLocalName());
+							log("CONFIRM got items for "
+									+ message.getSender().getLocalName());
+						}
 
 					}
 					break;
@@ -333,7 +345,8 @@ public class ShelfAgent extends Agent {
 
 						// BROADCAST ROBOTS
 						currentState = State.waitForRobot;
-						currentItemRequest = message.getContent();
+						currentItemRequest = getAvailableItems(
+								message.getContent()).toString();
 						currentOrderPicker = message.getSender();
 						broadcastRobots = new BroadcastRobots(myAgent,
 								BCAST_FREQ);
@@ -345,14 +358,9 @@ public class ShelfAgent extends Agent {
 
 					if (currentState == State.serveOrderPicker) {
 
-						// check again to be sure its the right item
-						if (!hasItem(message.getContent())) {
-							log("something went wrong: delivered wrong item!");
-						} else {
-							// decrease inventory
-							decreaseInventory(message.getContent());
-							log("inventory now: " + getInventoryString());
-						}
+						// decrease inventory
+						decreaseInventory(message.getContent());
+						log("inventory now: " + getInventoryString());
 
 						// TRAVEL BACK HOME
 						currentState = State.travelBackHome;
@@ -372,7 +380,7 @@ public class ShelfAgent extends Agent {
 	}
 
 	private void log(String log) {
-		//System.out.println(getLocalName() + ": " + log);
+		// System.out.println(getLocalName() + ": " + log);
 	}
 
 }
