@@ -83,8 +83,11 @@ public class ShelfStockGUI extends JFrame {
 			for (String item : inventory.keySet()) {
 				JLabel itemLabel = quantityLabels.get(item);
 				itemLabel.setText(inventory.get(item).toString());
+
 				if (inventory.get(item) < 1) {
 					itemLabel.setForeground(Color.RED);
+				} else if (inventory.get(item) <= 25) {
+					itemLabel.setForeground(Color.ORANGE);
 				} else {
 					itemLabel.setForeground(Color.BLACK);
 				}
