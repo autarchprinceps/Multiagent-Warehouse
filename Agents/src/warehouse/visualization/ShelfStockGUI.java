@@ -35,7 +35,7 @@ public class ShelfStockGUI extends JFrame {
 
 	private ShelfStockGUI() {
 		setTitle("Warehouse - ShelfStock");
-		setSize(300, 200);
+		setSize(250, 250);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 
 		listPane = new JPanel();

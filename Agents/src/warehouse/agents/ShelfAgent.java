@@ -125,7 +125,7 @@ public class ShelfAgent extends Agent {
 					}
 				}
 
-			} catch (JSONException e) {
+			} catch (Exception e) {
 				System.err.println("ERROR WITH JSON: " + jsonRequest);
 				e.printStackTrace();
 			}
