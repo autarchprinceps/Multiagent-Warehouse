@@ -130,6 +130,7 @@ public class OrderPicker extends Agent
 			switch (this.itemStatus.get(item))
 			{
 			case BROADCASTED:
+				//TODO format like the others !!!
 				missingItems.put(item);
 				OrderPicker.this.itemStatus.put(item, ItemStatus.BROADCASTED);
 				break;

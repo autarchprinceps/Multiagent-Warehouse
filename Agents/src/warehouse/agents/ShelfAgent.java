@@ -17,7 +17,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
+
+import warehouse.visualization.ShelfStockGUI;
 
 /**
  * @author Bastian Mager <bastian.mager.2010w@informatik.h-brs.de>
@@ -39,7 +42,7 @@ public class ShelfAgent extends Agent {
 	private PickupWait currentPickupWaitBehaviour;
 
 	// INVENTORY
-	private Map<String, Integer> inventory = new HashMap<String, Integer>();
+	public Map<String, Integer> inventory = new HashMap<String, Integer>();
 
 	private static enum State {
 		idle, waitForRobot, travelToOrderPicker, serveOrderPicker, travelBackHome
@@ -82,6 +85,8 @@ public class ShelfAgent extends Agent {
 			e.printStackTrace();
 		}
 
+		ShelfStockGUI.register(this);
+
 	}
 
 	private String getInventoryString() {
@@ -107,17 +112,23 @@ public class ShelfAgent extends Agent {
 		JSONArray requestedItems = new JSONArray(jsonRequest);
 		for (int i = 0; i < requestedItems.length(); i++) {
 
-			JSONObject requestedItem = requestedItems.getJSONObject(i);
-			Pair<String, Integer> itemWithQuantity = Pair
-					.convert(requestedItem);
+			try {
 
-			if (inventory.containsKey(itemWithQuantity.getFirst())) {
-				if (inventory.get(itemWithQuantity.getFirst()) >= itemWithQuantity
-						.getSecond()) {
-					availableItems.put(requestedItem);
+				JSONObject requestedItem = requestedItems.getJSONObject(i);
+				Pair<String, Integer> itemWithQuantity = Pair
+						.convert(requestedItem);
+
+				if (inventory.containsKey(itemWithQuantity.getFirst())) {
+					if (inventory.get(itemWithQuantity.getFirst()) >= itemWithQuantity
+							.getSecond()) {
+						availableItems.put(requestedItem);
+					}
 				}
-			}
 
+			} catch (JSONException e) {
+				System.err.println("ERROR WITH JSON: " + jsonRequest);
+				e.printStackTrace();
+			}
 		}
 
 		return availableItems;
@@ -134,7 +145,7 @@ public class ShelfAgent extends Agent {
 					- itemWithQuantity.getSecond());
 
 		}
-
+		ShelfStockGUI.update(this);
 	}
 
 	private class BroadcastRobots extends TickerBehaviour {
