@@ -1,10 +1,10 @@
 # Warehouse
 
 ## Status
-
-* Working:
-	* Order is successfully completed in standard case
-	* see wiki/architekture for the interaction design between the agents
+* Order is successfully completed in standard case
+* Added a simple gui for the stocks of the shelfs
+* Shelfs and Orderpickers support a "multi-item-broadcast"
+* see wiki/architekture for the interaction design between the agents
 
 ## Work-Sharing
 
@@ -20,6 +20,13 @@
 * ShelfAgent
 * RobotAgent
 
+## Agent Communication
+![Alt text](/Documentation/Sequence_Diagram__Warehouse-Order-Picker__Warehouse-Order-Picker.png)
+
+![Alt text](/Documentation/Sequence_Diagram__OrderPicker-Shelf__OrderPicker-Shelf.png)
+
+![Alt text](/Documentation/Sequence_Diagram__Shelf-Robot__Shelf-Robot.png)
+
 ## TODO-List
 
 ### Patrick Robinson
@@ -30,7 +37,7 @@
 * Maybe broadcast all items at once, speeds up whole orderpicker, shelf robot interaction
 
 ### Bastian Mager
-* Link Robots with that simulation software (?)
+* Link Robots with that simulation software
 
 ## Running
 
