@@ -1,22 +1,22 @@
-# Warehouse
+# Multiagent-Warehouse
 
 ## Status
 * Order is successfully completed in standard case
 * Configuration in JSON possible
-* Added a simple gui for the stocks of the shelfs
-* Shelfs and Orderpickers support a "multi-item-broadcast"
+* Added a simple GUI for the stocks of the ShelfAgents
+* ShelfAgents and Orderpickers support a "multi-item-broadcast"
 * see below or wiki/architecture for the interaction design between the agents
 
 ## TODO
 
-##### Patrick Robinson
+##### Patrick Robinson (WarehouseAgent, OrderAgent, CustomerAgentStub)
 * Debug parse config skript
 * Include orders in parse config skript
  
-##### Daniel Pyka
+##### Daniel Pyka (Order Picker)
 * Maybe broadcast all items at once, speeds up whole orderpicker, shelf robot interaction
 
-##### Bastian Mager
+##### Bastian Mager (ShelfAgent and Robots)
 * Link Robots with that simulation software
 
 ## Agent Communication
@@ -25,20 +25,6 @@
 ![Alt text](/Documentation/Sequence_Diagram__OrderPicker-Shelf__OrderPicker-Shelf.png)
 
 ![Alt text](/Documentation/Sequence_Diagram__Shelf-Robot__Shelf-Robot.png)
-
-## Work-Sharing
-
-### Patrick Robinson
-* CustomerAgentStub
-* WarehouseAgent
-* OrderAgent
-
-### Daniel Pyka
-* OrderPicker
-
-### Bastian Mager
-* ShelfAgent
-* RobotAgent
 
 ## Running
 
