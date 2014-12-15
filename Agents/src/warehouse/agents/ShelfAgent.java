@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import warehouse.visualization.ShelfStockGUI;
@@ -112,22 +111,15 @@ public class ShelfAgent extends Agent {
 		JSONArray requestedItems = new JSONArray(jsonRequest);
 		for (int i = 0; i < requestedItems.length(); i++) {
 
-			try {
+			JSONObject requestedItem = requestedItems.getJSONObject(i);
+			Pair<String, Integer> itemWithQuantity = Pair
+					.convert(requestedItem);
 
-				JSONObject requestedItem = requestedItems.getJSONObject(i);
-				Pair<String, Integer> itemWithQuantity = Pair
-						.convert(requestedItem);
-
-				if (inventory.containsKey(itemWithQuantity.getFirst())) {
-					if (inventory.get(itemWithQuantity.getFirst()) >= itemWithQuantity
-							.getSecond()) {
-						availableItems.put(requestedItem);
-					}
+			if (inventory.containsKey(itemWithQuantity.getFirst())) {
+				if (inventory.get(itemWithQuantity.getFirst()) >= itemWithQuantity
+						.getSecond()) {
+					availableItems.put(requestedItem);
 				}
-
-			} catch (Exception e) {
-				System.err.println("ERROR WITH JSON: " + jsonRequest);
-				e.printStackTrace();
 			}
 		}
 
