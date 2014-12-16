@@ -33,9 +33,9 @@ for(i = 0; i < config.shelves.length; i++) {
 cmd = cmd.substr(0, cmd.length - 2);
 
 console.log(cmd);
-require('child_process').exec(cmd, function(err, stdout, stderr) {
+/*require('child_process').exec(cmd, function(err, stdout, stderr) {
 	console.error(err);
 	var fs = require('fs');
 	fs.appendFile('stdout.log', stdout);
 	fs.appendFile('stderr.log', stderr);
-});
+});*/
