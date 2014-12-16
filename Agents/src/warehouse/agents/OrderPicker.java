@@ -73,7 +73,7 @@ public class OrderPicker extends Agent
 			e.printStackTrace();
 		}
 
-		log("available.");
+		// System.out.println(getLocalName() + "available.");
 		this.isIdle = true;
 
 		this.idle = new IdleBehaviour();
@@ -93,7 +93,7 @@ public class OrderPicker extends Agent
 		{
 			fe.printStackTrace();
 		}
-		log("terminating.");
+		// System.out.println(getLocalName() + "terminating.");
 	}
 
 	private boolean checkOrderCompletion()
@@ -122,7 +122,7 @@ public class OrderPicker extends Agent
 		return tmp;
 	}
 
-	private void rebroadcast()
+	private void timeOutRebroadcast()
 	{
 		JSONArray missingItems = new JSONArray();
 		for (Pair<String, Integer> item : this.itemStatus.keySet())
@@ -143,8 +143,11 @@ public class OrderPicker extends Agent
 				throw new RuntimeException("Invalid value in orderStatus HashMap!");
 			}
 		}
-		Behaviour requiredItems = new Broadcaster(missingItems);
-		addBehaviour(requiredItems);
+		if (missingItems.length() > 0)
+		{
+			Behaviour requiredItems = new Broadcaster(missingItems);
+			addBehaviour(requiredItems);
+		}
 	}
 
 	private void initLogFile(AID currentOrderAgent)
@@ -168,25 +171,30 @@ public class OrderPicker extends Agent
 		}
 	}
 
-	private void logFile(String line)
+	private void log(String line)
 	{
 		this.writer.println(line);
 		this.writer.flush();
 	}
 
-	private void logFileItemStatus()
+	private void logItemStatus()
 	{
-		logFile("---itemStatus---");
+		log("---itemStatus---");
 		for (Pair<String, Integer> key : OrderPicker.this.itemStatus.keySet())
 		{
-			logFile(key + " : " + OrderPicker.this.itemStatus.get(key));
+			log(key + " : " + OrderPicker.this.itemStatus.get(key));
 		}
-		logFile("");
+		log("");
 	}
 
-	private void log(String log)
+	private void logShelfInfo()
 	{
-		// System.out.println(getLocalName() + ": " + log);
+		log("---shelfInfo---");
+		for (Pair<String, Integer> key : OrderPicker.this.shelfInfo.keySet())
+		{
+			log(key + " : " + OrderPicker.this.shelfInfo.get(key));
+		}
+		log("");
 	}
 
 	private class IdleBehaviour extends CyclicBehaviour
@@ -199,7 +207,6 @@ public class OrderPicker extends Agent
 			ACLMessage query_if = receive(MessageTemplate.MatchPerformative(ACLMessage.QUERY_IF));
 			if (query_if != null && OrderPicker.this.isIdle)
 			{
-				log("QUERY_IF received, send CONFIRM to " + query_if.getSender().getLocalName());
 				ACLMessage response = query_if.createReply();
 				response.setPerformative(ACLMessage.CONFIRM);
 				response.setLanguage("JSON");
@@ -228,7 +235,6 @@ public class OrderPicker extends Agent
 				{
 					if (request.getLanguage().equals("JSON"))
 					{
-						log("REQUEST received, AGREE send to: " + request.getSender().getLocalName());
 						OrderPicker.this.isIdle = false;
 						OrderPicker.this.currentOrderAgent = request.getSender();
 						ACLMessage agree = request.createReply();
@@ -238,7 +244,6 @@ public class OrderPicker extends Agent
 						agree.setContent(new JSONObject().put(getLocalName(), true).toString());
 						send(agree);
 
-						log("REQUEST items: " + request.getContent());
 						OrderPicker.this.orderIncoming = new JSONArray(request.getContent());
 
 						OrderPicker.this.shelfInteraction = new ShelfInteraction();
@@ -250,7 +255,7 @@ public class OrderPicker extends Agent
 							Pair<String, Integer> item = Pair.convert(OrderPicker.this.orderIncoming.getJSONObject(i));
 							OrderPicker.this.itemStatus.put(item, ItemStatus.BROADCASTED);
 						}
-						logFileItemStatus();
+						logItemStatus();
 
 						Behaviour incomingOrderBC = new Broadcaster(OrderPicker.this.orderIncoming);
 						addBehaviour(incomingOrderBC);
@@ -260,8 +265,7 @@ public class OrderPicker extends Agent
 					}
 				}
 				else
-				{ // isIdle == false
-					log("REQUEST received, CANCEL send to: " + request.getSender().getLocalName());
+				{
 					ACLMessage cancel = request.createReply();
 					cancel.setPerformative(ACLMessage.CANCEL);
 					cancel.setLanguage("JSON");
@@ -311,9 +315,9 @@ public class OrderPicker extends Agent
 				e.printStackTrace();
 			}
 
-			logFile("---new broadcast requiredItems---");
-			logFile("broadcast: " + this.requiredItems);
-			logFile("");
+			log("---new broadcast requiredItems---");
+			log("broadcast: " + this.requiredItems);
+			log("");
 			broadcast.setContent(this.requiredItems.toString());
 			send(broadcast);
 			removeBehaviour(this);
@@ -334,10 +338,11 @@ public class OrderPicker extends Agent
 				JSONArray shelfMsgContent = new JSONArray(shelfMsg.getContent());
 				JSONArray opMsgContent = new JSONArray();
 
-				logFile("---shelfInteraction---");
-				logFile("from: " + shelfMsg.getSender().getLocalName());
-				logFile("aclmessage: " + ACLMessage.getPerformative(shelfMsg.getPerformative()));
-				logFile("");
+				log("---shelfInteraction---");
+				log("from: " + shelfMsg.getSender().getLocalName());
+				log("aclmessage: " + ACLMessage.getPerformative(shelfMsg.getPerformative()));
+				log("content: " + shelfMsg.getContent());
+				log("");
 
 				switch (shelfMsg.getPerformative())
 				{
@@ -354,11 +359,14 @@ public class OrderPicker extends Agent
 							opMsgContent.put(itemJSON);
 						}
 					}
-					log("PROPOSE send to : " + shelfMsg.getSender().getLocalName());
-					ACLMessage propose = shelfMsg.createReply();
-					propose.setPerformative(ACLMessage.PROPOSE);
-					propose.setContent(opMsgContent.toString());
-					send(propose);
+					logShelfInfo();
+					if (opMsgContent.length() > 0)
+					{
+						ACLMessage propose = shelfMsg.createReply();
+						propose.setPerformative(ACLMessage.PROPOSE);
+						propose.setContent(opMsgContent.toString());
+						send(propose);
+					}
 					break;
 				case ACLMessage.ACCEPT_PROPOSAL:
 					for (int i = 0; i < shelfMsgContent.length(); i++)
@@ -381,7 +389,7 @@ public class OrderPicker extends Agent
 						{
 							OrderPicker.this.itemStatus.put(item, ItemStatus.BROADCASTED);
 							OrderPicker.this.shelfInfo.remove(item);
-							opMsgContent.put(itemJSON);
+							opMsgContent.put(itemJSON.toString());
 						}
 					}
 					Behaviour rebroadcast = new Broadcaster(opMsgContent);
@@ -400,7 +408,6 @@ public class OrderPicker extends Agent
 							OrderPicker.this.itemStatus.put(item, ItemStatus.PROPERTY);
 						}
 					}
-					log("INFORM send to " + shelfMsg.getSender().getLocalName() + " (take item)");
 					ACLMessage inform = shelfMsg.createReply();
 					inform.setPerformative(ACLMessage.INFORM);
 					inform.setContent(opMsgContent.toString());
@@ -415,7 +422,7 @@ public class OrderPicker extends Agent
 					// ignore, do nothing
 					break;
 				}
-				logFileItemStatus();
+				logItemStatus();
 			}
 			else
 			{
@@ -461,7 +468,7 @@ public class OrderPicker extends Agent
 		public AbortOrder(Agent a)
 		{
 			// check every 5s
-			super(a, 2000);
+			super(a, 5000);
 		}
 
 		private static final long serialVersionUID = 1L;
@@ -475,11 +482,11 @@ public class OrderPicker extends Agent
 			}
 			else
 			{
-				if (this.i == OrderPicker.this.orderIncoming.length() * 5)
+				if (this.i == OrderPicker.this.orderIncoming.length())
 				{
 					removeBehaviour(OrderPicker.this.shelfInteraction);
 
-					log("Could not complete in time window, send FAILURE and partial complete order to "
+					log("Could not complete the order in time window, send FAILURE and partial complete order to "
 							+ OrderPicker.this.currentOrderAgent.getLocalName() + "!");
 
 					ACLMessage inform = new ACLMessage(ACLMessage.FAILURE);
@@ -500,7 +507,7 @@ public class OrderPicker extends Agent
 				}
 				else
 				{
-					rebroadcast();
+					timeOutRebroadcast();
 					this.i++;
 				}
 			}
