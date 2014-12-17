@@ -110,7 +110,6 @@ public class ShelfAgent extends Agent {
 		JSONArray availableItems = new JSONArray();
 		JSONArray requestedItems = new JSONArray(jsonRequest);
 		for (int i = 0; i < requestedItems.length(); i++) {
-
 			JSONObject requestedItem = requestedItems.getJSONObject(i);
 			Pair<String, Integer> itemWithQuantity = Pair
 					.convert(requestedItem);
@@ -311,7 +310,6 @@ public class ShelfAgent extends Agent {
 				case ACLMessage.QUERY_IF:
 
 					if (currentState == State.idle) {
-
 						JSONArray availableItems = getAvailableItems(message
 								.getContent());
 						if (availableItems.length() > 0) {

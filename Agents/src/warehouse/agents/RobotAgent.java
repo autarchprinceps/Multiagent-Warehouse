@@ -72,7 +72,7 @@ public class RobotAgent extends Agent {
 			log("Transport " + currentShelf.getLocalName() + " to picker");
 
 			int transportDelay = rand.nextInt(5);
-			block(transportDelay * 1000);
+			// block(transportDelay * 1000);
 
 			ACLMessage message = new ACLMessage(ACLMessage.INFORM);
 			message.addReceiver(currentShelf);

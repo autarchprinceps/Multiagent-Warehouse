@@ -389,7 +389,7 @@ public class OrderPicker extends Agent
 						{
 							OrderPicker.this.itemStatus.put(item, ItemStatus.BROADCASTED);
 							OrderPicker.this.shelfInfo.remove(item);
-							opMsgContent.put(itemJSON.toString());
+							opMsgContent.put(itemJSON);
 						}
 					}
 					Behaviour rebroadcast = new Broadcaster(opMsgContent);

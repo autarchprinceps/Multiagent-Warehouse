@@ -32,7 +32,7 @@ public class CustomerAgentTicking extends Agent {
 			ex.printStackTrace();
 		}
 
-		this.addBehaviour(new TickerBehaviour(this, 10000) {
+		this.addBehaviour(new TickerBehaviour(this, 5000) {
 			private static final long serialVersionUID = -5570642512218060415L;
 
 			@Override
@@ -83,7 +83,7 @@ public class CustomerAgentTicking extends Agent {
 		});
 	}
 
-	private int id_gen = 0;
+	public static int id_gen = 1000;
 	
 	private String generateJSON() {
 		StringBuilder result = new StringBuilder("{id:");
