@@ -36,9 +36,6 @@ public class CustomerAgentParse extends Agent {
 		}
 		
 		Object[] args = getArguments();
-		for(Object arg : args) {
-			System.err.println(arg);
-		}
 		orders = new ArrayList<>();
 		JSONObject order = null;
 		for(int i = 0; i < args.length; i++) {

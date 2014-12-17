@@ -23,7 +23,7 @@ for(i = 0; i < config.pickers.length; i++) {
 	cmd += "picker_" + config.pickers[i].uid + ":warehouse.agents.OrderPicker\\;";
 }
 for(i = 0; i < config.shelves.length; i++) {
-	cmd += "shelf_" + config.shelves[i].uid + ":warehouse.agents.OrderPicker\"(";
+	cmd += "shelf_" + config.shelves[i].uid + ":warehouse.agents.ShelfAgent\"(";
 	for(j = 0; j < config.shelves[i].products.length; j++) {
 		cmd += config.shelves[i].products[j].name + "," + config.shelves[i].products[j].stock.current + ",";
 	}
