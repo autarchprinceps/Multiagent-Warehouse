@@ -4,6 +4,7 @@
 * Order is successfully completed in standard case
 * Configuration in JSON possible
 * Added a simple GUI for the stocks of the ShelfAgents
+* Orderpickers use a log file (in Agents directory) for processing orders to display their internal datastructure and workflow
 * ShelfAgents and Orderpickers support a "multi-item-broadcast"
 * see below or wiki/architecture for the interaction design between the agents
 
@@ -14,7 +15,7 @@
 * Include orders in parse config skript
  
 ##### Daniel Pyka (Order Picker)
-* Maybe broadcast all items at once, speeds up whole orderpicker, shelf robot interaction
+* Logging for simulation software
 
 ##### Bastian Mager (ShelfAgent and Robots)
 * Link Robots with that simulation software
@@ -35,5 +36,5 @@ The project uses Java 8 update 25!
 The Eclipse project contains a launch configuration that creates all agents with the exception of the customer simulating agent, which can be added manually  in order to debug or run the warehouse without a real customer agent.
 
 There are two shell scripts:
-1. for compiling all source files (environment variable has to be set to java 8 bin directory)
-2. for running jade with our agents (currently not working, -classpath parameters are incorrect)
+1. for compiling all source files (PATH environment variable has to be set to java 8 bin directory)
+2. for running jade with our agents (does not work in git shell emulation but works on linux systems JAVA_HOME variable has to be set to a Java 8 version)
