@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="12.2">
+  <zoom_level>10</zoom_level>
+  <element>
+    <type>com.umlet.element.UseCase</type>
+    <coordinates>
+      <x>390</x>
+      <y>200</y>
+      <w>190</w>
+      <h>160</h>
+    </coordinates>
+    <panel_attributes>Order
+
+bg=white</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.UseCase</type>
+    <coordinates>
+      <x>410</x>
+      <y>210</y>
+      <w>140</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>Shelf1
+bg=yellow
+layer=2</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.UseCase</type>
+    <coordinates>
+      <x>510</x>
+      <y>230</y>
+      <w>60</w>
+      <h>110</h>
+    </coordinates>
+    <panel_attributes>Shelf2
+bg=red
+layer=1</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.UseCase</type>
+    <coordinates>
+      <x>420</x>
+      <y>290</y>
+      <w>130</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>Shelf3
+bg=blue
+layer=3</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>390</x>
+      <y>140</y>
+      <w>120</w>
+      <h>40</h>
+    </coordinates>
+    <panel_attributes>Example item 2: {Engine:1}
+elementstyle=wordwrap</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.UseCase</type>
+    <coordinates>
+      <x>470</x>
+      <y>210</y>
+      <w>20</w>
+      <h>20</h>
+    </coordinates>
+    <panel_attributes>1
+layer=5
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.UseCase</type>
+    <coordinates>
+      <x>420</x>
+      <y>230</y>
+      <w>20</w>
+      <h>20</h>
+    </coordinates>
+    <panel_attributes>2
+layer=5</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.UseCase</type>
+    <coordinates>
+      <x>520</x>
+      <y>240</y>
+      <w>20</w>
+      <h>20</h>
+    </coordinates>
+    <panel_attributes>3
+layer=5</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.UseCase</type>
+    <coordinates>
+      <x>540</x>
+      <y>260</y>
+      <w>20</w>
+      <h>20</h>
+    </coordinates>
+    <panel_attributes>4
+layer=5</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.UseCase</type>
+    <coordinates>
+      <x>430</x>
+      <y>310</y>
+      <w>20</w>
+      <h>20</h>
+    </coordinates>
+    <panel_attributes>5
+layer=5</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.UseCase</type>
+    <coordinates>
+      <x>520</x>
+      <y>310</y>
+      <w>20</w>
+      <h>20</h>
+    </coordinates>
+    <panel_attributes>6
+layer=5</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <type>com.umlet.element.Relation</type>
+    <coordinates>
+      <x>400</x>
+      <y>150</y>
+      <w>70</w>
+      <h>100</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-
+layer=5</panel_attributes>
+    <additional_attributes>30;80;50;30</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>420</x>
+      <y>380</y>
+      <w>120</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>Sequence:
+1. Shelf 3 (5,6)
+2. Shelf 1 (1,2,3)
+3. Shelf 2 (4)
+elementstyle=wordwrap
+halign=left
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+</diagram>
